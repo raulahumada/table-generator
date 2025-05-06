@@ -31,11 +31,12 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
-  ArrowUpDown,
+  Database,
   ArrowUp,
   ArrowDown,
   Loader2,
   Settings,
+  FileCode,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -924,7 +925,37 @@ export default function Home() {
               <Button onClick={addAuditFields} variant="outline">
                 Agregar Campos Auditoría
               </Button>
+
+              <Button onClick={generateInsertProcedure} variant="secondary">
+                Generar Procedimiento INSERT
+              </Button>
+              <Button onClick={generateUpdateProcedure} variant="secondary">
+                Generar Procedimiento UPDATE
+              </Button>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="secondary"
+                      disabled={true}
+                      className="cursor-not-allowed transition-all duration-200 group"
+                    >
+                      <Settings className="mr-2 h-4 w-4 group-hover:animate-spin" />
+                      Generar Comentarios con IA
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Funcionalidad en desarrollo</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <Button onClick={generateScript} variant="default" className="bg-blue-500 hover:bg-blue-600 text-white">
+                <FileCode className="mr-2 h-4 w-4" />
+                Generar Script de Tabla
+              </Button>
               <Button
+                className="bg-teal-500 hover:bg-teal-600 text-white"
                 onClick={async () => {
                   if (!previewScript || !tableName) {
                     alert(
@@ -967,6 +998,7 @@ export default function Home() {
                 }}
                 disabled={isSavingToRedis}
               >
+                <Database className="mr-2 h-4 w-4" />
                 {isSavingToRedis ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -976,35 +1008,6 @@ export default function Home() {
                   'Guardar en Base de Datos'
                 )}
               </Button>
-              <Button onClick={generateScript} variant="default">
-                Generar Script de Tabla
-              </Button>
-              <Button onClick={generateInsertProcedure} variant="secondary">
-                Generar Procedimiento INSERT
-              </Button>
-              <Button onClick={generateUpdateProcedure} variant="secondary">
-                Generar Procedimiento UPDATE
-              </Button>
-              <Button onClick={saveScript} variant="secondary">
-                Guardar Script
-              </Button>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="secondary"
-                      disabled={true}
-                      className="cursor-not-allowed transition-all duration-200 group"
-                    >
-                      <Settings className="mr-2 h-4 w-4 group-hover:animate-spin" />
-                      Generar Comentarios con IA
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Funcionalidad en desarrollo</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
             </div>
           </CardContent>
         </Card>
