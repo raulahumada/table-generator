@@ -30,6 +30,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { ArrowUpDown, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface Column {
   name: string;
@@ -68,6 +75,7 @@ export default function Home() {
   const [showPreview, setShowPreview] = useState(false);
   const [previewTitle, setPreviewTitle] = useState('');
   const [savedScripts, setSavedScripts] = useState<Script[]>([]);
+  const [isGeneratingComments, setIsGeneratingComments] = useState(false);
 
   // Cargar scripts guardados al iniciar
   useEffect(() => {
@@ -111,12 +119,177 @@ export default function Home() {
   const updateColumn = (index: number, field: keyof Column, value: any) => {
     const newColumns = [...columns];
     newColumns[index] = { ...newColumns[index], [field]: value };
+
+    // Si se está actualizando isPrimaryKey a true, mover la columna después de los campos de llave
+    if (field === 'isPrimaryKey' && value === true) {
+      const keyFields = ['SCERTYPE', 'NBRANCH', 'NPRODUCT', 'NPOLICY'];
+      const currentColumn = newColumns[index];
+
+      // Si la columna actual no es uno de los campos de llave predefinidos
+      if (!keyFields.includes(currentColumn.name)) {
+        // Encontrar el índice del último campo de llave
+        const lastKeyFieldIndex = newColumns.findIndex((col) =>
+          keyFields.includes(col.name)
+        );
+
+        if (lastKeyFieldIndex !== -1) {
+          // Remover la columna de su posición actual
+          newColumns.splice(index, 1);
+          // Insertar después del último campo de llave
+          newColumns.splice(lastKeyFieldIndex + 1, 0, currentColumn);
+        }
+      }
+    }
+
     setColumns(newColumns);
   };
 
   const deleteColumn = (index: number) => {
     const newColumns = columns.filter((_, i) => i !== index);
     setColumns(newColumns);
+  };
+
+  const moveColumn = (index: number, direction: 'up' | 'down') => {
+    if (
+      (direction === 'up' && index === 0) ||
+      (direction === 'down' && index === columns.length - 1)
+    ) {
+      return;
+    }
+
+    const newColumns = [...columns];
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+
+    // Verificar si estamos intentando mover un campo de llave
+    const keyFields = ['SCERTYPE', 'NBRANCH', 'NPRODUCT', 'NPOLICY'];
+    const isKeyField = keyFields.includes(newColumns[index].name);
+    const isTargetKeyField = keyFields.includes(newColumns[newIndex].name);
+
+    // No permitir mover campos de llave fuera de su grupo
+    if (isKeyField && !isTargetKeyField && direction === 'down') {
+      return;
+    }
+    if (!isKeyField && isTargetKeyField && direction === 'up') {
+      return;
+    }
+
+    [newColumns[index], newColumns[newIndex]] = [
+      newColumns[newIndex],
+      newColumns[index],
+    ];
+    setColumns(newColumns);
+  };
+
+  const addAuditFields = () => {
+    const auditFields: Column[] = [
+      {
+        name: 'DCOMPDATE',
+        isPrimaryKey: false,
+        isNullable: true,
+        dataType: 'DATE',
+        constraint: '',
+        hasForeignKey: false,
+        foreignTable: '',
+        comment:
+          'Fecha del computador en que se crea o actualiza el registro. // Computer date when the record is updated or created.',
+      },
+      {
+        name: 'DNULLDATE',
+        isPrimaryKey: false,
+        isNullable: true,
+        dataType: 'DATE',
+        constraint: '',
+        hasForeignKey: false,
+        foreignTable: '',
+        comment:
+          'Fecha de anulación del registro. // Date when the record is cancelled.',
+      },
+      {
+        name: 'NUSERCODE',
+        isPrimaryKey: false,
+        isNullable: true,
+        dataType: 'NUMBER(5)',
+        constraint: '',
+        hasForeignKey: false,
+        foreignTable: '',
+        comment:
+          'Código del usuario que crea o actualiza el registro. // Code of the user creating or updating the record.',
+      },
+    ];
+
+    // Verificar si los campos de auditoría ya existen
+    const existingColumns = columns.map((col) => col.name);
+    const newAuditFields = auditFields.filter(
+      (field) => !existingColumns.includes(field.name)
+    );
+
+    if (newAuditFields.length === 0) {
+      alert('Los campos de auditoría ya han sido agregados');
+      return;
+    }
+
+    // Insertar los campos de auditoría al principio
+    setColumns((prevColumns) => [...newAuditFields, ...prevColumns]);
+  };
+
+  const addKeyFields = () => {
+    const keyFields: Column[] = [
+      {
+        name: 'SCERTYPE',
+        isPrimaryKey: true,
+        isNullable: false,
+        dataType: 'CHAR(1)',
+        constraint: '',
+        hasForeignKey: false,
+        foreignTable: '',
+        comment: 'Tipo de registro. // Type of Record.',
+      },
+      {
+        name: 'NBRANCH',
+        isPrimaryKey: true,
+        isNullable: false,
+        dataType: 'NUMBER(5)',
+        constraint: '',
+        hasForeignKey: false,
+        foreignTable: '',
+        comment: 'Código del ramo comercial. // Code of the line of business.',
+      },
+      {
+        name: 'NPRODUCT',
+        isPrimaryKey: true,
+        isNullable: false,
+        dataType: 'NUMBER(5)',
+        constraint: '',
+        hasForeignKey: false,
+        foreignTable: '',
+        comment: 'Código del producto. // Code of the product.',
+      },
+      {
+        name: 'NPOLICY',
+        isPrimaryKey: true,
+        isNullable: false,
+        dataType: 'NUMBER(10)',
+        constraint: '',
+        hasForeignKey: false,
+        foreignTable: '',
+        comment:
+          'Número que identifica la póliza/cotización/solicitud. // Number identifying the Policy/Quotation/Application.',
+      },
+    ];
+
+    // Verificar si los campos de llave ya existen
+    const existingColumns = columns.map((col) => col.name);
+    const newKeyFields = keyFields.filter(
+      (field) => !existingColumns.includes(field.name)
+    );
+
+    if (newKeyFields.length === 0) {
+      alert('Los campos de llave ya han sido agregados');
+      return;
+    }
+
+    // Insertar los campos de llave al principio
+    setColumns((prevColumns) => [...newKeyFields, ...prevColumns]);
   };
 
   const generateScript = () => {
@@ -441,29 +614,91 @@ export default function Home() {
     alert('Script cargado en el editor');
   };
 
+  const generateAISuggestedComments = async () => {
+    if (!tableName) {
+      alert('Por favor, ingresa un nombre para la tabla primero');
+      return;
+    }
+
+    setIsGeneratingComments(true);
+    try {
+      const columnsWithNames = columns.filter((col) => col.name);
+      if (columnsWithNames.length === 0) {
+        alert('Por favor, ingresa al menos una columna con nombre');
+        return;
+      }
+
+      const response = await fetch('/api/generate-comments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tableName,
+          tableComment,
+          columns: columnsWithNames.map((col) => ({
+            name: col.name,
+            dataType: col.dataType,
+            isPrimaryKey: col.isPrimaryKey,
+            hasForeignKey: col.hasForeignKey,
+            foreignTable: col.foreignTable,
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al generar comentarios');
+      }
+
+      const suggestedComments = await response.json();
+
+      // Actualizar los comentarios de las columnas
+      const newColumns = columns.map((col) => {
+        const suggestedComment = suggestedComments.find(
+          (s: any) => s.columnName === col.name
+        );
+        if (suggestedComment) {
+          return { ...col, comment: suggestedComment.comment };
+        }
+        return col;
+      });
+
+      setColumns(newColumns);
+      alert('Comentarios generados exitosamente');
+    } catch (error) {
+      console.error('Error al generar comentarios:', error);
+      alert('Error al generar comentarios. Por favor, intenta de nuevo.');
+    } finally {
+      setIsGeneratingComments(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen p-4">
-      <div className="w-full">
-        <h1 className="text-2xl font-bold mb-6">
+    <div className="min-h-screen p-4 bg-background">
+      <div className="w-full max-w-[1400px] mx-auto">
+        <h1 className="text-3xl font-bold mb-8 text-foreground">
           Generador de Scripts SQL para Oracle
         </h1>
 
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Información de la Tabla</CardTitle>
+        <Card className="mb-6 shadow-md">
+          <CardHeader className="bg-muted/50">
+            <CardTitle className="text-xl">Información de la Tabla</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4">
+          <CardContent className="grid gap-4 pt-6">
             <div className="grid gap-2">
-              <Label htmlFor="tableName">Nombre de la Tabla</Label>
+              <Label htmlFor="tableName" className="text-sm font-medium">
+                Nombre de la Tabla
+              </Label>
               <Input
                 id="tableName"
                 value={tableName}
                 onChange={(e) => setTableName(e.target.value)}
                 placeholder="nombre_tabla"
+                className="max-w-md"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="tableComment">
+              <Label htmlFor="tableComment" className="text-sm font-medium">
                 Comentario General de la Tabla
               </Label>
               <Textarea
@@ -471,21 +706,21 @@ export default function Home() {
                 value={tableComment}
                 onChange={(e) => setTableComment(e.target.value)}
                 placeholder="Descripción general de la tabla y su propósito"
-                className="min-h-[100px]"
+                className="min-h-[100px] max-w-2xl"
               />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Columnas de la Tabla</CardTitle>
+        <Card className="shadow-md">
+          <CardHeader className="bg-muted/50">
+            <CardTitle className="text-xl">Columnas de la Tabla</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <div className="rounded-md border overflow-x-auto w-full">
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="bg-muted/50">
                     <TableHead className="w-[200px]">
                       Nombre del Campo
                     </TableHead>
@@ -505,15 +740,37 @@ export default function Home() {
                 </TableHeader>
                 <TableBody>
                   {columns.map((column, index) => (
-                    <TableRow key={index}>
+                    <TableRow key={index} className="hover:bg-muted/50">
                       <TableCell>
-                        <Input
-                          value={column.name}
-                          onChange={(e) =>
-                            updateColumn(index, 'name', e.target.value)
-                          }
-                          placeholder="nombre_campo"
-                        />
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={column.name}
+                            onChange={(e) =>
+                              updateColumn(index, 'name', e.target.value)
+                            }
+                            placeholder="nombre_campo"
+                          />
+                          <div className="flex flex-col">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => moveColumn(index, 'up')}
+                              disabled={index === 0}
+                              className="h-8 w-8"
+                            >
+                              <ArrowUp className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => moveColumn(index, 'down')}
+                              disabled={index === columns.length - 1}
+                              className="h-8 w-8"
+                            >
+                              <ArrowDown className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell className="text-center">
                         <Checkbox
@@ -543,15 +800,19 @@ export default function Home() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="NUMBER">NUMBER</SelectItem>
+                            <SelectItem value="NUMBER(5)">NUMBER(5)</SelectItem>
+                            <SelectItem value="NUMBER(10)">
+                              NUMBER(10)
+                            </SelectItem>
+                            <SelectItem value="NUMBER(10,2)">
+                              NUMBER(10,2)
+                            </SelectItem>
                             <SelectItem value="VARCHAR2(255)">
                               VARCHAR2(255)
                             </SelectItem>
                             <SelectItem value="CLOB">CLOB</SelectItem>
                             <SelectItem value="DATE">DATE</SelectItem>
                             <SelectItem value="TIMESTAMP">TIMESTAMP</SelectItem>
-                            <SelectItem value="NUMBER(10,2)">
-                              NUMBER(10,2)
-                            </SelectItem>
                             <SelectItem value="CHAR(1)">CHAR(1)</SelectItem>
                             <SelectItem value="BLOB">BLOB</SelectItem>
                           </SelectContent>
@@ -609,11 +870,19 @@ export default function Home() {
               </Table>
             </div>
 
-            <div className="mt-4 flex gap-4 flex-wrap">
+            <div className="mt-6 flex gap-4 flex-wrap">
               <Button onClick={addColumn} variant="outline">
                 Agregar Columna
               </Button>
-              <Button onClick={generateScript}>Generar Script de Tabla</Button>
+              <Button onClick={addKeyFields} variant="outline">
+                Agregar Campos Llave
+              </Button>
+              <Button onClick={addAuditFields} variant="outline">
+                Agregar Campos Auditoría
+              </Button>
+              <Button onClick={generateScript} variant="default">
+                Generar Script de Tabla
+              </Button>
               <Button onClick={generateInsertProcedure} variant="secondary">
                 Generar Procedimiento INSERT
               </Button>
@@ -623,30 +892,49 @@ export default function Home() {
               <Button onClick={saveScript} variant="secondary">
                 Guardar Script
               </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="secondary"
+                      disabled={true}
+                      className="cursor-not-allowed"
+                    >
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generar Comentarios con IA
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Funcionalidad en desarrollo</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </CardContent>
         </Card>
 
         {/* Lista de scripts guardados */}
         {savedScripts.length > 0 && (
-          <Card className="mt-8">
-            <CardHeader>
-              <CardTitle>Scripts Guardados</CardTitle>
+          <Card className="mt-8 shadow-md">
+            <CardHeader className="bg-muted/50">
+              <CardTitle className="text-xl">Scripts Guardados</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <div className="space-y-4">
                 {savedScripts.map((savedScript) => (
                   <div
                     key={savedScript.id}
-                    className="border rounded-lg p-4 bg-gray-50"
+                    className="border rounded-lg p-4 bg-card hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-semibold">{savedScript.tableName}</h3>
-                      <span className="text-sm text-gray-500">
+                      <h3 className="font-semibold text-lg">
+                        {savedScript.tableName}
+                      </h3>
+                      <span className="text-sm text-muted-foreground">
                         {savedScript.createdAt.toLocaleString()}
                       </span>
                     </div>
-                    <pre className="bg-white p-4 rounded overflow-auto max-h-40">
+                    <pre className="bg-muted p-4 rounded overflow-auto max-h-40 text-sm">
                       {savedScript.script}
                     </pre>
                     <div className="mt-2 flex justify-end gap-2">
@@ -698,15 +986,15 @@ export default function Home() {
         )}
 
         <Dialog open={showPreview} onOpenChange={setShowPreview}>
-          <DialogContent className="max-w-10xl">
+          <DialogContent className="max-w-[90vw] w-full h-[80vh]">
             <DialogHeader>
-              <DialogTitle>{previewTitle}</DialogTitle>
+              <DialogTitle className="text-xl">{previewTitle}</DialogTitle>
               <DialogDescription>
                 Revisa el script generado antes de copiarlo
               </DialogDescription>
             </DialogHeader>
-            <div className="relative">
-              <pre className="p-4 bg-gray-100 rounded-md overflow-auto max-h-[60vh]">
+            <div className="relative flex-1 overflow-hidden">
+              <pre className="p-4 bg-muted rounded-md overflow-auto h-full font-mono text-sm">
                 {previewScript}
               </pre>
               <Button
