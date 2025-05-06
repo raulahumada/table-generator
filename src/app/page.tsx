@@ -30,7 +30,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { ArrowUpDown, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
+import {
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Loader2,
+  Settings,
+} from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -675,44 +681,60 @@ export default function Home() {
 
   return (
     <div className="min-h-screen p-4 bg-background">
-      <div className="w-full max-w-[1400px] mx-auto">
-        <h1 className="text-3xl font-bold mb-8 text-foreground">
+      <div className="w-full max-w-[1800px] mx-auto">
+        <h1 className="text-4xl font-bold mb-8 text-foreground tracking-tight animate-fade-in">
           Generador de Scripts SQL para Oracle
         </h1>
 
-        <Card className="mb-6 shadow-md">
-          <CardHeader className="bg-muted/50">
-            <CardTitle className="text-xl">Información de la Tabla</CardTitle>
+        <Card className="mb-8 shadow-xl border-border/50 bg-card/95 animate-scale-in">
+          <CardHeader className="bg-muted/30 border-b border-border/50 px-8 py-6">
+            <CardTitle className="text-2xl text-foreground font-semibold">
+              Información de la Tabla
+            </CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 pt-6">
-            <div className="grid gap-2">
-              <Label htmlFor="tableName" className="text-sm font-medium">
-                Nombre de la Tabla
-              </Label>
-              <Input
-                id="tableName"
-                value={tableName}
-                onChange={(e) => setTableName(e.target.value)}
-                placeholder="nombre_tabla"
-                className="max-w-md"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="tableComment" className="text-sm font-medium">
-                Comentario General de la Tabla
-              </Label>
-              <Textarea
-                id="tableComment"
-                value={tableComment}
-                onChange={(e) => setTableComment(e.target.value)}
-                placeholder="Descripción general de la tabla y su propósito"
-                className="min-h-[100px] max-w-2xl"
-              />
+          <CardContent className="p-8">
+            <div className="grid gap-8 w-full">
+              <div className="grid gap-3 animate-slide-in">
+                <Label
+                  htmlFor="tableName"
+                  className="text-base font-medium text-foreground"
+                >
+                  Nombre de la Tabla
+                </Label>
+                <Input
+                  id="tableName"
+                  value={tableName}
+                  onChange={(e) => setTableName(e.target.value)}
+                  placeholder="nombre_tabla"
+                  className="w-full bg-muted/50 border-border/50 h-12 text-lg px-4 focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                />
+              </div>
+              <div
+                className="grid gap-3 animate-slide-in"
+                style={{ animationDelay: '100ms' }}
+              >
+                <Label
+                  htmlFor="tableComment"
+                  className="text-base font-medium text-foreground"
+                >
+                  Comentario General de la Tabla
+                </Label>
+                <Textarea
+                  id="tableComment"
+                  value={tableComment}
+                  onChange={(e) => setTableComment(e.target.value)}
+                  placeholder="Descripción general de la tabla y su propósito"
+                  className="w-full min-h-[140px] bg-muted/50 border-border/50 text-base p-4 resize-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="shadow-md">
+        <Card
+          className="shadow-md animate-scale-in"
+          style={{ animationDelay: '200ms' }}
+        >
           <CardHeader className="bg-muted/50">
             <CardTitle className="text-xl">Columnas de la Tabla</CardTitle>
           </CardHeader>
@@ -721,26 +743,38 @@ export default function Home() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="w-[200px]">
+                    <TableHead className="w-[300px]">
                       Nombre del Campo
                     </TableHead>
-                    <TableHead className="w-[150px]">Primary Key</TableHead>
-                    <TableHead className="w-[150px]">Nulleable</TableHead>
+                    <TableHead className="w-[120px] text-center">
+                      Primary Key
+                    </TableHead>
+                    <TableHead className="w-[120px] text-center">
+                      Nulleable
+                    </TableHead>
                     <TableHead className="w-[200px]">Tipo de Dato</TableHead>
                     <TableHead className="w-[200px]">Constraint</TableHead>
-                    <TableHead className="w-[150px]">Foreign Key</TableHead>
-                    <TableHead className="w-[200px]">
-                      Tabla Referencia
+                    <TableHead className="w-[120px] text-center">
+                      Foreign Key
                     </TableHead>
                     <TableHead className="w-[250px]">
+                      Tabla Referencia
+                    </TableHead>
+                    <TableHead className="w-[400px]">
                       Comentario del Campo
                     </TableHead>
-                    <TableHead className="w-[150px]">Acciones</TableHead>
+                    <TableHead className="w-[120px] text-center">
+                      Acciones
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {columns.map((column, index) => (
-                    <TableRow key={index} className="hover:bg-muted/50">
+                    <TableRow
+                      key={index}
+                      className="hover:bg-muted/50 transition-all duration-200 animate-slide-in"
+                      style={{ animationDelay: `${index * 50}ms` }}
+                    >
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Input
@@ -749,6 +783,7 @@ export default function Home() {
                               updateColumn(index, 'name', e.target.value)
                             }
                             placeholder="nombre_campo"
+                            className="w-full transition-all duration-200"
                           />
                           <div className="flex flex-col">
                             <Button
@@ -756,7 +791,7 @@ export default function Home() {
                               size="icon"
                               onClick={() => moveColumn(index, 'up')}
                               disabled={index === 0}
-                              className="h-8 w-8"
+                              className="h-8 w-8 transition-transform hover:scale-110"
                             >
                               <ArrowUp className="h-4 w-4" />
                             </Button>
@@ -765,7 +800,7 @@ export default function Home() {
                               size="icon"
                               onClick={() => moveColumn(index, 'down')}
                               disabled={index === columns.length - 1}
-                              className="h-8 w-8"
+                              className="h-8 w-8 transition-transform hover:scale-110"
                             >
                               <ArrowDown className="h-4 w-4" />
                             </Button>
@@ -778,6 +813,7 @@ export default function Home() {
                           onCheckedChange={(checked) =>
                             updateColumn(index, 'isPrimaryKey', checked)
                           }
+                          className="scale-125"
                         />
                       </TableCell>
                       <TableCell className="text-center">
@@ -786,6 +822,7 @@ export default function Home() {
                           onCheckedChange={(checked) =>
                             updateColumn(index, 'isNullable', checked)
                           }
+                          className="scale-125"
                         />
                       </TableCell>
                       <TableCell>
@@ -795,7 +832,7 @@ export default function Home() {
                             updateColumn(index, 'dataType', value)
                           }
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Seleccionar" />
                           </SelectTrigger>
                           <SelectContent>
@@ -825,6 +862,7 @@ export default function Home() {
                             updateColumn(index, 'constraint', e.target.value)
                           }
                           placeholder="UNIQUE, CHECK, etc."
+                          className="w-full"
                         />
                       </TableCell>
                       <TableCell className="text-center">
@@ -833,6 +871,7 @@ export default function Home() {
                           onCheckedChange={(checked) =>
                             updateColumn(index, 'hasForeignKey', checked)
                           }
+                          className="scale-125"
                         />
                       </TableCell>
                       <TableCell>
@@ -843,6 +882,7 @@ export default function Home() {
                           }
                           placeholder="nombre_tabla_referencia"
                           disabled={!column.hasForeignKey}
+                          className="w-full"
                         />
                       </TableCell>
                       <TableCell>
@@ -852,6 +892,7 @@ export default function Home() {
                             updateColumn(index, 'comment', e.target.value)
                           }
                           placeholder="Descripción del campo"
+                          className="w-full"
                         />
                       </TableCell>
                       <TableCell className="text-center">
@@ -860,6 +901,7 @@ export default function Home() {
                           size="sm"
                           onClick={() => deleteColumn(index)}
                           disabled={columns.length === 1}
+                          className="transition-all duration-200 hover:scale-105"
                         >
                           Eliminar
                         </Button>
@@ -898,9 +940,9 @@ export default function Home() {
                     <Button
                       variant="secondary"
                       disabled={true}
-                      className="cursor-not-allowed"
+                      className="cursor-not-allowed transition-all duration-200 group"
                     >
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Settings className="mr-2 h-4 w-4 group-hover:animate-spin" />
                       Generar Comentarios con IA
                     </Button>
                   </TooltipTrigger>
