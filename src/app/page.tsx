@@ -1,5 +1,7 @@
 'use client';
 
+
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,7 +61,7 @@ interface Script {
   id: string;
   tableName: string;
   script: string;
-  createdAt: Date;
+  createdAt: string;
 }
 
 export default function Home() {
@@ -82,23 +84,25 @@ export default function Home() {
   const [previewTitle, setPreviewTitle] = useState('');
   const [savedScripts, setSavedScripts] = useState<Script[]>([]);
   const [isGeneratingComments, setIsGeneratingComments] = useState(false);
+  const [isSavingToRedis, setIsSavingToRedis] = useState(false);
 
-  // Cargar scripts guardados al iniciar
+  // Load scripts from Redis when component mounts
   useEffect(() => {
-    const savedScriptsFromStorage = localStorage.getItem('savedScripts');
-    if (savedScriptsFromStorage) {
+    const fetchScripts = async () => {
       try {
-        const parsedScripts = JSON.parse(savedScriptsFromStorage);
-        // Convertir las fechas de string a Date
-        const scriptsWithDates = parsedScripts.map((script: any) => ({
-          ...script,
-          createdAt: new Date(script.createdAt),
-        }));
-        setSavedScripts(scriptsWithDates);
+        const response = await fetch('/api/save-script');
+        const data = await response.json();
+        if (data.success) {
+          setSavedScripts(data.scripts);
+        } else {
+          console.error('Failed to fetch scripts:', data.error);
+        }
       } catch (error) {
-        console.error('Error al cargar scripts guardados:', error);
+        console.error('Error fetching scripts:', error);
       }
-    }
+    };
+
+    fetchScripts();
   }, []);
 
   // Guardar scripts cuando cambien
@@ -521,7 +525,7 @@ export default function Home() {
         id: Date.now().toString(),
         tableName,
         script,
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
       };
 
       setSavedScripts((prev) => [...prev, newScript]);
@@ -922,6 +926,52 @@ export default function Home() {
               <Button onClick={addAuditFields} variant="outline">
                 Agregar Campos Auditoría
               </Button>
+              <Button
+                onClick={async () => {
+                  if (!previewScript || !tableName) {
+                    alert('Please generate a script and provide a table name first');
+                    return;
+                  }
+                  try {
+                    setIsSavingToRedis(true);
+                    const response = await fetch('/api/save-script', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({ 
+                        script: previewScript,
+                        tableName: tableName
+                      }),
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                      // Add the new script to the list
+                      setSavedScripts(prev => [...prev, result.script]);
+                      alert('Script saved to Redis successfully!');
+                    } else {
+                      throw new Error(result.error || 'Unknown error');
+                    }
+                  } catch (error) {
+                    console.error('Error saving to Redis:', error);
+                    alert(error instanceof Error ? error.message : 'Failed to save script to Redis');
+                  } finally {
+                    setIsSavingToRedis(false);
+                  }
+                }}
+                disabled={isSavingToRedis}
+              >
+                {isSavingToRedis ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving to Redis...
+                  </>
+                ) : (
+                  'Save to Redis'
+                )}
+              </Button>
               <Button onClick={generateScript} variant="default">
                 Generar Script de Tabla
               </Button>
@@ -973,7 +1023,7 @@ export default function Home() {
                         {savedScript.tableName}
                       </h3>
                       <span className="text-sm text-muted-foreground">
-                        {savedScript.createdAt.toLocaleString()}
+                        {new Date(savedScript.createdAt).toLocaleString()}
                       </span>
                     </div>
                     <pre className="bg-muted p-4 rounded overflow-auto max-h-40 text-sm">
@@ -1012,9 +1062,9 @@ export default function Home() {
                         variant="destructive"
                         size="sm"
                         onClick={() => {
-                          setSavedScripts((prev) =>
-                            prev.filter((s) => s.id !== savedScript.id)
-                          );
+                          const updatedScripts = savedScripts.filter((s) => s.id !== savedScript.id);
+                          setSavedScripts(updatedScripts);
+                          // Note: This only updates the UI. The scripts in Redis remain unchanged.
                         }}
                       >
                         Eliminar
