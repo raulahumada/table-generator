@@ -17,6 +17,8 @@ const eslintConfig = [
       '@typescript-eslint/no-unused-vars': ['error'],
       'no-explicit-any': 'off',
       '@typescript-eslint/no-unused-any': ['error'],
+      'no-unused-any': 'off',
+      '@typescript-eslint/no-unused-any': ['error'],
     },
   },
 ];
