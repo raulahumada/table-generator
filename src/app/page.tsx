@@ -1,7 +1,5 @@
 'use client';
 
-
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -929,7 +927,9 @@ export default function Home() {
               <Button
                 onClick={async () => {
                   if (!previewScript || !tableName) {
-                    alert('Please generate a script and provide a table name first');
+                    alert(
+                      'Please generate a script and provide a table name first'
+                    );
                     return;
                   }
                   try {
@@ -939,24 +939,28 @@ export default function Home() {
                       headers: {
                         'Content-Type': 'application/json',
                       },
-                      body: JSON.stringify({ 
+                      body: JSON.stringify({
                         script: previewScript,
-                        tableName: tableName
+                        tableName: tableName,
                       }),
                     });
-                    
+
                     const result = await response.json();
-                    
+
                     if (result.success) {
                       // Add the new script to the list
-                      setSavedScripts(prev => [...prev, result.script]);
+                      setSavedScripts((prev) => [...prev, result.script]);
                       alert('Script saved to Redis successfully!');
                     } else {
                       throw new Error(result.error || 'Unknown error');
                     }
                   } catch (error) {
                     console.error('Error saving to Redis:', error);
-                    alert(error instanceof Error ? error.message : 'Failed to save script to Redis');
+                    alert(
+                      error instanceof Error
+                        ? error.message
+                        : 'Failed to save script to Redis'
+                    );
                   } finally {
                     setIsSavingToRedis(false);
                   }
@@ -966,10 +970,10 @@ export default function Home() {
                 {isSavingToRedis ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving to Redis...
+                    Guardando en la base de datos...
                   </>
                 ) : (
-                  'Save to Redis'
+                  'Guardar en Base de Datos'
                 )}
               </Button>
               <Button onClick={generateScript} variant="default">
@@ -1062,7 +1066,9 @@ export default function Home() {
                         variant="destructive"
                         size="sm"
                         onClick={() => {
-                          const updatedScripts = savedScripts.filter((s) => s.id !== savedScript.id);
+                          const updatedScripts = savedScripts.filter(
+                            (s) => s.id !== savedScript.id
+                          );
                           setSavedScripts(updatedScripts);
                           // Note: This only updates the UI. The scripts in Redis remain unchanged.
                         }}
