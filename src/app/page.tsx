@@ -1068,6 +1068,7 @@ export default function Home() {
                             <SelectItem value="CHAR(20)">CHAR(20)</SelectItem>
                             <SelectItem value="CHAR(30)">CHAR(30)</SelectItem>
                             <SelectItem value="BLOB">BLOB</SelectItem>
+                            <SelectItem value="GENERIC">GENERIC</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
