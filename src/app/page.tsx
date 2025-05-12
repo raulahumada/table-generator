@@ -47,6 +47,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 interface Column {
   name: string;
@@ -64,11 +65,13 @@ interface Script {
   tableName: string;
   script: string;
   createdAt: string;
+  isAlterTable: boolean;
 }
 
 export default function Home() {
   const [tableName, setTableName] = useState('');
   const [tableComment, setTableComment] = useState('');
+  const [isAlterTable, setIsAlterTable] = useState(false);
   const [columns, setColumns] = useState<Column[]>([
     {
       name: '',
@@ -352,48 +355,80 @@ export default function Home() {
       return;
     }
 
-    let script = `-- Creación de la tabla ${tableName}\n`;
-    if (tableComment) {
-      script += `-- ${tableComment}\n\n`;
-    }
+    let script = '';
 
-    script += `CREATE TABLE ${tableName} (\n`;
-
-    // Primero generamos las columnas
-    columns.forEach((column, index) => {
-      if (column.name) {
-        script += `    ${column.name} ${column.dataType}`;
-        if (!column.isNullable) script += ' NOT NULL';
-        if (column.constraint) script += ` ${column.constraint}`;
-        if (index < columns.length - 1) script += ',';
-        script += '\n';
+    if (!isAlterTable) {
+      script = `-- Creación de la tabla ${tableName}\n`;
+      if (tableComment) {
+        script += `-- ${tableComment}\n\n`;
       }
-    });
 
-    // Luego agregamos las constraints de primary key
-    const primaryKeys = columns
-      .filter((col) => col.isPrimaryKey && col.name)
-      .map((col) => col.name);
+      script += `CREATE TABLE ${tableName} (\n`;
 
-    if (primaryKeys.length > 0) {
-      script += `    ,CONSTRAINT PK_${tableName} PRIMARY KEY (${primaryKeys.join(
-        ', '
-      )})\n`;
-    }
+      // Primero generamos las columnas
+      columns.forEach((column, index) => {
+        if (column.name) {
+          script += `    ${column.name} ${column.dataType}`;
+          if (!column.isNullable) script += ' NOT NULL';
+          if (column.constraint) script += ` ${column.constraint}`;
+          if (index < columns.length - 1) script += ',';
+          script += '\n';
+        }
+      });
 
-    // Agregamos las constraints de foreign key
-    columns.forEach((column, index) => {
-      if (column.hasForeignKey && column.foreignTable && column.name) {
-        script += `    ,CONSTRAINT FK_${tableName}_${column.name} FOREIGN KEY (${column.name})\n`;
-        script += `        REFERENCES ${column.foreignTable} (${column.name})\n`;
+      // Luego agregamos las constraints de primary key
+      const primaryKeys = columns
+        .filter((col) => col.isPrimaryKey && col.name)
+        .map((col) => col.name);
+
+      if (primaryKeys.length > 0) {
+        script += `    ,CONSTRAINT PK_${tableName} PRIMARY KEY (${primaryKeys.join(
+          ', '
+        )})\n`;
       }
-    });
 
-    script += ');\n\n';
+      // Agregamos las constraints de foreign key
+      columns.forEach((column) => {
+        if (column.hasForeignKey && column.foreignTable && column.name) {
+          script += `    ,CONSTRAINT FK_${tableName}_${column.name} FOREIGN KEY (${column.name})\n`;
+          script += `        REFERENCES ${column.foreignTable} (${column.name})\n`;
+        }
+      });
 
-    // Agregamos los comentarios de la tabla
-    if (tableComment) {
-      script += `COMMENT ON TABLE ${tableName} IS '${tableComment}';\n`;
+      script += ');\n\n';
+    } else {
+      // Generar script ALTER TABLE
+      if (tableComment) {
+        script += `COMMENT ON TABLE ${tableName} IS '${tableComment}';\n\n`;
+      }
+
+      // Generar ALTER TABLE para cada columna
+      columns.forEach((column) => {
+        if (column.name) {
+          script += `ALTER TABLE ${tableName} ADD ${column.name} ${column.dataType}`;
+          if (!column.isNullable) script += ' NOT NULL';
+          if (column.constraint) script += ` ${column.constraint}`;
+          script += ';\n';
+        }
+      });
+
+      // Agregar primary key constraint
+      const primaryKeys = columns
+        .filter((col) => col.isPrimaryKey && col.name)
+        .map((col) => col.name);
+
+      if (primaryKeys.length > 0) {
+        script += `\nALTER TABLE ${tableName} ADD CONSTRAINT PK_${tableName} PRIMARY KEY (${primaryKeys.join(
+          ', '
+        )});\n`;
+      }
+
+      // Agregar foreign key constraints
+      columns.forEach((column) => {
+        if (column.hasForeignKey && column.foreignTable && column.name) {
+          script += `\nALTER TABLE ${tableName} ADD CONSTRAINT FK_${tableName}_${column.name} FOREIGN KEY (${column.name}) REFERENCES ${column.foreignTable} (${column.name});\n`;
+        }
+      });
     }
 
     // Agregamos los comentarios de las columnas
@@ -403,7 +438,9 @@ export default function Home() {
       }
     });
 
-    setPreviewTitle('Script de Creación de Tabla');
+    setPreviewTitle(
+      isAlterTable ? 'Script de ALTER TABLE' : 'Script de Creación de Tabla'
+    );
     setPreviewScript(script);
     setShowPreview(true);
     return script;
@@ -810,14 +847,44 @@ export default function Home() {
                 >
                   Nombre de la Tabla
                 </Label>
-                <Input
-                  id="tableName"
-                  value={tableName}
-                  onChange={(e) => setTableName(e.target.value)}
-                  placeholder="nombre_tabla"
-                  className="w-full bg-muted/50 border-border/50 h-12 text-lg px-4 focus:ring-2 focus:ring-primary/20 transition-all duration-200"
-                />
+                <div className="flex items-center gap-4">
+                  <Input
+                    id="tableName"
+                    value={tableName}
+                    onChange={(e) => setTableName(e.target.value)}
+                    placeholder="nombre_tabla"
+                    className="w-full bg-muted/50 border-border/50 h-12 text-lg px-4 focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                  />
+                  <div className="flex items-center gap-2 bg-yellow-50/80 dark:bg-yellow-950/20 p-3 rounded-lg border border-yellow-200 dark:border-yellow-800/30 transition-all duration-200 hover:bg-yellow-50 dark:hover:bg-yellow-950/30">
+                    <Checkbox
+                      id="isAlterTable"
+                      checked={isAlterTable}
+                      onCheckedChange={(checked) =>
+                        setIsAlterTable(checked as boolean)
+                      }
+                      className="w-5 h-5 data-[state=checked]:bg-yellow-600 data-[state=checked]:border-yellow-600"
+                    />
+                    <Label
+                      htmlFor="isAlterTable"
+                      className="text-base font-medium text-yellow-800 dark:text-yellow-200 whitespace-nowrap cursor-pointer"
+                    >
+                      Generar como ALTER TABLE
+                    </Label>
+                  </div>
+                </div>
               </div>
+
+              {isAlterTable && (
+                <div className="bg-yellow-50/80 dark:bg-yellow-950/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800/30">
+                  <p className="text-yellow-800 dark:text-yellow-200 flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                    <span>
+                      Los campos se agregarán usando comandos ALTER TABLE ADD
+                    </span>
+                  </p>
+                </div>
+              )}
+
               <div
                 className="grid gap-3 animate-slide-in"
                 style={{ animationDelay: '100ms' }}
@@ -948,12 +1015,22 @@ export default function Home() {
                           <SelectContent>
                             <SelectItem value="NUMBER">NUMBER</SelectItem>
                             <SelectItem value="NUMBER(5)">NUMBER(5)</SelectItem>
+                            <SelectItem value="NUMBER(9,6)">
+                              NUMBER(9,6)
+                            </SelectItem>
                             <SelectItem value="NUMBER(10)">
                               NUMBER(10)
                             </SelectItem>
                             <SelectItem value="NUMBER(10,2)">
                               NUMBER(10,2)
                             </SelectItem>
+                            <SelectItem value="NUMBER(18,6)">
+                              NUMBER(18,6)
+                            </SelectItem>
+                            <SelectItem value="NUMBER(20)">
+                              NUMBER(20)
+                            </SelectItem>
+
                             <SelectItem value="VARCHAR2(255)">
                               VARCHAR2(255)
                             </SelectItem>
@@ -961,6 +1038,7 @@ export default function Home() {
                             <SelectItem value="DATE">DATE</SelectItem>
                             <SelectItem value="TIMESTAMP">TIMESTAMP</SelectItem>
                             <SelectItem value="CHAR(1)">CHAR(1)</SelectItem>
+                            <SelectItem value="CHAR(12)">CHAR(12)</SelectItem>
                             <SelectItem value="CHAR(30)">CHAR(30)</SelectItem>
                             <SelectItem value="BLOB">BLOB</SelectItem>
                           </SelectContent>
@@ -1093,6 +1171,7 @@ export default function Home() {
                         id: editingScriptId,
                         script: previewScript,
                         tableName: tableName,
+                        isAlterTable: isAlterTable,
                       }),
                     });
 
@@ -1170,38 +1249,84 @@ export default function Home() {
                 {savedScripts.map((savedScript) => (
                   <div
                     key={savedScript.id}
-                    className="border rounded-lg p-4 bg-card hover:bg-muted/50 transition-colors"
+                    className={cn(
+                      'border rounded-lg p-4 bg-card hover:bg-muted/50 transition-colors',
+                      savedScript.isAlterTable &&
+                        'bg-yellow-50/80 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800/30'
+                    )}
                   >
                     <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-semibold text-lg">
-                        {savedScript.tableName}
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-lg">
+                          {savedScript.tableName}
+                        </h3>
+                        {savedScript.isAlterTable && (
+                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-800/30">
+                            ALTER TABLE
+                          </span>
+                        )}
+                      </div>
                       <span className="text-sm text-muted-foreground">
                         {new Date(savedScript.createdAt).toLocaleString()}
                       </span>
                     </div>
-                    <pre className="bg-muted p-4 rounded overflow-auto max-h-40 text-sm">
+                    <pre
+                      className={cn(
+                        'p-4 rounded overflow-auto max-h-40 text-sm',
+                        savedScript.isAlterTable
+                          ? 'bg-yellow-100/50 dark:bg-yellow-900/20'
+                          : 'bg-muted'
+                      )}
+                    >
                       {savedScript.script}
                     </pre>
                     <div className="mt-2 flex justify-end gap-2">
                       <Button
-                        variant="outline"
+                        variant={
+                          savedScript.isAlterTable ? 'outline' : 'secondary'
+                        }
                         size="sm"
                         onClick={() => {
                           setPreviewScript(savedScript.script);
                           setPreviewTitle(`Script de ${savedScript.tableName}`);
                           setShowPreview(true);
                         }}
+                        className={cn(
+                          'transition-all duration-200 hover:scale-105',
+                          savedScript.isAlterTable &&
+                            'border-yellow-300 dark:border-yellow-800/50 hover:bg-yellow-50/50 dark:hover:bg-yellow-950/30'
+                        )}
                       >
+                        <FileCode
+                          className={cn(
+                            'mr-1 h-4 w-4',
+                            savedScript.isAlterTable
+                              ? 'text-yellow-600 dark:text-yellow-400'
+                              : ''
+                          )}
+                        />
                         Ver
                       </Button>
                       <Button
-                        variant="outline"
+                        variant={
+                          savedScript.isAlterTable ? 'outline' : 'secondary'
+                        }
                         size="sm"
                         onClick={() => {
                           navigator.clipboard.writeText(savedScript.script);
-                          alert('Script copiado al portapapeles');
+                          setAlertConfig({
+                            type: 'success',
+                            title: 'Éxito',
+                            description: 'Script copiado al portapapeles',
+                          });
+                          setShowAlert(true);
+                          setTimeout(() => setShowAlert(false), 3000);
                         }}
+                        className={cn(
+                          'transition-all duration-200 hover:scale-105',
+                          savedScript.isAlterTable &&
+                            'border-yellow-300 dark:border-yellow-800/50 hover:bg-yellow-50/50 dark:hover:bg-yellow-950/30'
+                        )}
                       >
                         Copiar
                       </Button>

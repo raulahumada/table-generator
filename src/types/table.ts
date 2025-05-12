@@ -10,5 +10,6 @@ export interface TableRowData {
 export interface TableData {
   tableName: string;
   tableComment: string;
+  isAlter: boolean;
   rows: TableRowData[];
 }

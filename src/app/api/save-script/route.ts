@@ -8,11 +8,12 @@ type Script = {
   script: string;
   tableName: string;
   createdAt: string;
+  isAlterTable: boolean;
 };
 
 export async function POST(request: Request) {
   try {
-    const { script, tableName } = await request.json();
+    const { script, tableName, isAlterTable } = await request.json();
 
     if (!script || !tableName) {
       return NextResponse.json(
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
       script,
       tableName,
       createdAt: new Date().toISOString(),
+      isAlterTable: isAlterTable || false,
     };
 
     // Add new script to array
@@ -110,7 +112,7 @@ export async function DELETE(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const { id, script, tableName } = await request.json();
+    const { id, script, tableName, isAlterTable } = await request.json();
 
     if (!id || !script || !tableName) {
       return NextResponse.json(
@@ -135,23 +137,19 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Remove all scripts with the same table name
-    const filteredScripts = existingScripts.filter(
-      (s) => s.tableName !== tableName
-    );
-
     // Create the updated script
     const updatedScript: Script = {
       ...existingScripts[scriptIndex],
       script,
       tableName,
+      isAlterTable: isAlterTable || false,
     };
 
-    // Add the updated script to the filtered list
-    const updatedScripts = [...filteredScripts, updatedScript];
+    // Update the script in the existing array
+    existingScripts[scriptIndex] = updatedScript;
 
     // Save the updated scripts back to Redis
-    const result = await redis.set(SCRIPTS_KEY, updatedScripts);
+    const result = await redis.set(SCRIPTS_KEY, existingScripts);
 
     if (result !== 'OK') {
       throw new Error('Failed to update Redis');
