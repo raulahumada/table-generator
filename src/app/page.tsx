@@ -103,6 +103,28 @@ export default function Home() {
     description: '',
   });
   const [editingScriptId, setEditingScriptId] = useState<string | null>(null);
+  const [keySequence, setKeySequence] = useState('');
+  const [showEasterEgg, setShowEasterEgg] = useState(false);
+
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      setKeySequence((prev) => {
+        const newSequence = prev + event.key.toLowerCase();
+
+        // Si la secuencia contiene "milei", activar el easter egg
+        if (newSequence.includes('milei')) {
+          setShowEasterEgg(true);
+          return '';
+        }
+
+        // Mantener solo los últimos 10 caracteres para no acumular memoria
+        return newSequence.slice(-10);
+      });
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
 
   // Load scripts from Redis when component mounts
   useEffect(() => {
@@ -1450,6 +1472,24 @@ export default function Home() {
               >
                 Eliminar
               </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showEasterEgg} onOpenChange={setShowEasterEgg}>
+          <DialogContent className="max-w-[800px] w-full">
+            <DialogHeader>
+              <DialogTitle className="text-xl">
+                ¡Easter Egg Encontrado! 🎉
+              </DialogTitle>
+            </DialogHeader>
+            <div className="relative" style={{ paddingBottom: '56.25%' }}>
+              <iframe
+                className="absolute top-0 left-0 w-full h-full"
+                src="https://www.youtube.com/embed/R26BSXAbRiY?autoplay=1"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
             </div>
           </DialogContent>
         </Dialog>
