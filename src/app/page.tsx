@@ -30,6 +30,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   Database,
   ArrowUp,
@@ -37,6 +38,8 @@ import {
   Loader2,
   Settings,
   FileCode,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -84,6 +87,19 @@ export default function Home() {
   const [savedScripts, setSavedScripts] = useState<Script[]>([]);
   const [isGeneratingComments, setIsGeneratingComments] = useState(false);
   const [isSavingToRedis, setIsSavingToRedis] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [scriptToDelete, setScriptToDelete] = useState<Script | null>(null);
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    type: 'success' | 'error';
+    title: string;
+    description: string;
+  }>({
+    type: 'success',
+    title: '',
+    description: '',
+  });
+  const [editingScriptId, setEditingScriptId] = useState<string | null>(null);
 
   // Load scripts from Redis when component mounts
   useEffect(() => {
@@ -233,7 +249,13 @@ export default function Home() {
     );
 
     if (newAuditFields.length === 0) {
-      alert('Los campos de auditoría ya han sido agregados');
+      setAlertConfig({
+        type: 'error',
+        title: 'Advertencia',
+        description: 'Los campos de auditoría ya han sido agregados',
+      });
+      setShowAlert(true);
+      setTimeout(() => setShowAlert(false), 3000);
       return;
     }
 
@@ -293,7 +315,13 @@ export default function Home() {
     );
 
     if (newKeyFields.length === 0) {
-      alert('Los campos de llave ya han sido agregados');
+      setAlertConfig({
+        type: 'error',
+        title: 'Advertencia',
+        description: 'Los campos de llave ya han sido agregados',
+      });
+      setShowAlert(true);
+      setTimeout(() => setShowAlert(false), 3000);
       return;
     }
 
@@ -303,7 +331,13 @@ export default function Home() {
 
   const generateScript = () => {
     if (!tableName) {
-      alert('Por favor, ingresa un nombre para la tabla');
+      setAlertConfig({
+        type: 'error',
+        title: 'Error',
+        description: 'Por favor, ingresa un nombre para la tabla',
+      });
+      setShowAlert(true);
+      setTimeout(() => setShowAlert(false), 3000);
       return;
     }
 
@@ -366,7 +400,13 @@ export default function Home() {
 
   const generateInsertProcedure = () => {
     if (!tableName) {
-      alert('Por favor, ingresa un nombre para la tabla');
+      setAlertConfig({
+        type: 'error',
+        title: 'Error',
+        description: 'Por favor, ingresa un nombre para la tabla',
+      });
+      setShowAlert(true);
+      setTimeout(() => setShowAlert(false), 3000);
       return;
     }
 
@@ -435,7 +475,13 @@ export default function Home() {
 
   const generateUpdateProcedure = () => {
     if (!tableName) {
-      alert('Por favor, ingresa un nombre para la tabla');
+      setAlertConfig({
+        type: 'error',
+        title: 'Error',
+        description: 'Por favor, ingresa un nombre para la tabla',
+      });
+      setShowAlert(true);
+      setTimeout(() => setShowAlert(false), 3000);
       return;
     }
 
@@ -447,9 +493,14 @@ export default function Home() {
     );
 
     if (primaryColumns.length === 0) {
-      alert(
-        'La tabla debe tener al menos una columna como Primary Key para generar el procedimiento de UPDATE'
-      );
+      setAlertConfig({
+        type: 'error',
+        title: 'Error',
+        description:
+          'La tabla debe tener al menos una columna como Primary Key para generar el procedimiento de UPDATE',
+      });
+      setShowAlert(true);
+      setTimeout(() => setShowAlert(false), 3000);
       return;
     }
 
@@ -505,39 +556,30 @@ export default function Home() {
     navigator.clipboard
       .writeText(previewScript)
       .then(() => {
-        alert('Script copiado al portapapeles');
+        setAlertConfig({
+          type: 'success',
+          title: 'Éxito',
+          description: 'Script copiado al portapapeles',
+        });
+        setShowAlert(true);
+        setTimeout(() => setShowAlert(false), 3000);
       })
       .catch((err) => {
         console.error('Error al copiar el script:', err);
-        alert('Error al copiar el script');
+        setAlertConfig({
+          type: 'error',
+          title: 'Error',
+          description: 'Error al copiar el script',
+        });
+        setShowAlert(true);
+        setTimeout(() => setShowAlert(false), 3000);
       });
-  };
-
-  const saveScript = () => {
-    try {
-      const script = generateScript();
-      if (typeof script !== 'string') {
-        throw new Error('El script generado no es una cadena de texto válida');
-      }
-
-      const newScript: Script = {
-        id: Date.now().toString(),
-        tableName,
-        script,
-        createdAt: new Date().toISOString(),
-      };
-
-      setSavedScripts((prev) => [...prev, newScript]);
-      alert('Script guardado exitosamente');
-    } catch (error) {
-      console.error('Error al guardar el script:', error);
-      alert('Error al guardar el script');
-    }
   };
 
   const loadScript = (savedScript: Script) => {
     // Limpiar el estado actual
     setTableName(savedScript.tableName);
+    setEditingScriptId(savedScript.id);
     // No limpiar el comentario de la tabla aquí
     setColumns([
       {
@@ -620,12 +662,46 @@ export default function Home() {
     }
 
     setColumns(newColumns);
-    alert('Script cargado en el editor');
+    setAlertConfig({
+      type: 'success',
+      title: 'Éxito',
+      description: 'Script cargado en el editor',
+    });
+    setShowAlert(true);
+    setTimeout(() => setShowAlert(false), 3000);
+  };
+
+  const saveScript = async () => {
+    try {
+      const script = generateScript();
+      if (typeof script !== 'string') {
+        throw new Error('El script generado no es una cadena de texto válida');
+      }
+
+      setPreviewScript(script);
+      setPreviewTitle('Script de Creación de Tabla');
+      setShowPreview(true);
+    } catch (error) {
+      console.error('Error al generar el script:', error);
+      setAlertConfig({
+        type: 'error',
+        title: 'Error',
+        description: 'Error al generar el script',
+      });
+      setShowAlert(true);
+      setTimeout(() => setShowAlert(false), 3000);
+    }
   };
 
   const generateAISuggestedComments = async () => {
     if (!tableName) {
-      alert('Por favor, ingresa un nombre para la tabla primero');
+      setAlertConfig({
+        type: 'error',
+        title: 'Error',
+        description: 'Por favor, ingresa un nombre para la tabla primero',
+      });
+      setShowAlert(true);
+      setTimeout(() => setShowAlert(false), 3000);
       return;
     }
 
@@ -633,7 +709,13 @@ export default function Home() {
     try {
       const columnsWithNames = columns.filter((col) => col.name);
       if (columnsWithNames.length === 0) {
-        alert('Por favor, ingresa al menos una columna con nombre');
+        setAlertConfig({
+          type: 'error',
+          title: 'Error',
+          description: 'Por favor, ingresa al menos una columna con nombre',
+        });
+        setShowAlert(true);
+        setTimeout(() => setShowAlert(false), 3000);
         return;
       }
 
@@ -673,10 +755,23 @@ export default function Home() {
       });
 
       setColumns(newColumns);
-      alert('Comentarios generados exitosamente');
+      setAlertConfig({
+        type: 'success',
+        title: 'Éxito',
+        description: 'Comentarios generados exitosamente',
+      });
+      setShowAlert(true);
+      setTimeout(() => setShowAlert(false), 3000);
     } catch (error) {
       console.error('Error al generar comentarios:', error);
-      alert('Error al generar comentarios. Por favor, intenta de nuevo.');
+      setAlertConfig({
+        type: 'error',
+        title: 'Error',
+        description:
+          'Error al generar comentarios. Por favor, intenta de nuevo.',
+      });
+      setShowAlert(true);
+      setTimeout(() => setShowAlert(false), 3000);
     } finally {
       setIsGeneratingComments(false);
     }
@@ -951,27 +1046,39 @@ export default function Home() {
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              <Button onClick={generateScript} variant="default" className="bg-blue-500 hover:bg-blue-600 text-white">
+              <Button
+                onClick={saveScript}
+                variant="default"
+                className="bg-blue-500 hover:bg-blue-600 text-white"
+              >
                 <FileCode className="mr-2 h-4 w-4" />
-                Generar Script de Tabla
+                {editingScriptId
+                  ? 'Actualizar Script'
+                  : 'Generar Script de Tabla'}
               </Button>
               <Button
                 className="bg-teal-500 hover:bg-teal-600 text-white"
                 onClick={async () => {
                   if (!previewScript || !tableName) {
-                    alert(
-                      'Please generate a script and provide a table name first'
-                    );
+                    setAlertConfig({
+                      type: 'error',
+                      title: 'Error',
+                      description:
+                        'Por favor, genera un script y proporciona un nombre de tabla primero',
+                    });
+                    setShowAlert(true);
+                    setTimeout(() => setShowAlert(false), 3000);
                     return;
                   }
                   try {
                     setIsSavingToRedis(true);
                     const response = await fetch('/api/save-script', {
-                      method: 'POST',
+                      method: editingScriptId ? 'PUT' : 'POST',
                       headers: {
                         'Content-Type': 'application/json',
                       },
                       body: JSON.stringify({
+                        id: editingScriptId,
                         script: previewScript,
                         tableName: tableName,
                       }),
@@ -980,19 +1087,42 @@ export default function Home() {
                     const result = await response.json();
 
                     if (result.success) {
-                      // Add the new script to the list
-                      setSavedScripts((prev) => [...prev, result.script]);
-                      alert('Script saved to Redis successfully!');
+                      if (editingScriptId) {
+                        // Actualizar el script existente en la lista
+                        setSavedScripts((prev) =>
+                          prev.map((s) =>
+                            s.id === editingScriptId ? result.script : s
+                          )
+                        );
+                        setEditingScriptId(null);
+                      } else {
+                        // Agregar el nuevo script a la lista
+                        setSavedScripts((prev) => [...prev, result.script]);
+                      }
+                      setAlertConfig({
+                        type: 'success',
+                        title: 'Éxito',
+                        description: editingScriptId
+                          ? 'Script actualizado en Redis exitosamente'
+                          : 'Script guardado en Redis exitosamente',
+                      });
+                      setShowAlert(true);
+                      setTimeout(() => setShowAlert(false), 3000);
                     } else {
-                      throw new Error(result.error || 'Unknown error');
+                      throw new Error(result.error || 'Error desconocido');
                     }
                   } catch (error) {
                     console.error('Error saving to Redis:', error);
-                    alert(
-                      error instanceof Error
-                        ? error.message
-                        : 'Failed to save script to Redis'
-                    );
+                    setAlertConfig({
+                      type: 'error',
+                      title: 'Error',
+                      description:
+                        error instanceof Error
+                          ? error.message
+                          : 'Error al guardar el script en Redis',
+                    });
+                    setShowAlert(true);
+                    setTimeout(() => setShowAlert(false), 3000);
                   } finally {
                     setIsSavingToRedis(false);
                   }
@@ -1003,8 +1133,12 @@ export default function Home() {
                 {isSavingToRedis ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Guardando en la base de datos...
+                    {editingScriptId
+                      ? 'Actualizando en base de datos...'
+                      : 'Guardando en base de datos...'}
                   </>
+                ) : editingScriptId ? (
+                  'Actualizar en Base de Datos'
                 ) : (
                   'Guardar en Base de Datos'
                 )}
@@ -1070,11 +1204,8 @@ export default function Home() {
                         variant="destructive"
                         size="sm"
                         onClick={() => {
-                          const updatedScripts = savedScripts.filter(
-                            (s) => s.id !== savedScript.id
-                          );
-                          setSavedScripts(updatedScripts);
-                          // Note: This only updates the UI. The scripts in Redis remain unchanged.
+                          setScriptToDelete(savedScript);
+                          setShowDeleteConfirm(true);
                         }}
                       >
                         Eliminar
@@ -1109,6 +1240,118 @@ export default function Home() {
             </div>
           </DialogContent>
         </Dialog>
+
+        <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Confirmar Eliminación</DialogTitle>
+              <DialogDescription>
+                ¿Estás seguro que deseas eliminar el script de la tabla{' '}
+                {scriptToDelete?.tableName}? Esta acción no se puede deshacer.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-4 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setScriptToDelete(null);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  if (!scriptToDelete) return;
+
+                  try {
+                    const response = await fetch('/api/save-script', {
+                      method: 'DELETE',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        id: scriptToDelete.id,
+                      }),
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                      const updatedScripts = savedScripts.filter(
+                        (s) => s.id !== scriptToDelete.id
+                      );
+                      setSavedScripts(updatedScripts);
+                      setAlertConfig({
+                        type: 'success',
+                        title: 'Éxito',
+                        description: 'Script eliminado exitosamente',
+                      });
+                      setShowAlert(true);
+                      setTimeout(() => setShowAlert(false), 3000);
+                    } else {
+                      throw new Error(result.error || 'Error desconocido');
+                    }
+                  } catch (error) {
+                    console.error('Error al eliminar el script:', error);
+                    setAlertConfig({
+                      type: 'error',
+                      title: 'Error',
+                      description:
+                        error instanceof Error
+                          ? error.message
+                          : 'Error al eliminar el script',
+                    });
+                    setShowAlert(true);
+                    setTimeout(() => setShowAlert(false), 3000);
+                  } finally {
+                    setShowDeleteConfirm(false);
+                    setScriptToDelete(null);
+                  }
+                }}
+              >
+                Eliminar
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {showAlert && (
+          <div className="fixed bottom-4 right-4 z-50">
+            <Alert
+              className={
+                alertConfig.type === 'success'
+                  ? 'bg-green-50 border-green-200'
+                  : 'bg-red-50 border-red-200'
+              }
+            >
+              {alertConfig.type === 'success' ? (
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+              ) : (
+                <AlertCircle className="h-4 w-4 text-red-600" />
+              )}
+              <AlertTitle
+                className={
+                  alertConfig.type === 'success'
+                    ? 'text-green-800'
+                    : 'text-red-800'
+                }
+              >
+                {alertConfig.title}
+              </AlertTitle>
+              <AlertDescription
+                className={
+                  alertConfig.type === 'success'
+                    ? 'text-green-700'
+                    : 'text-red-700'
+                }
+              >
+                {alertConfig.description}
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
       </div>
     </div>
   );
