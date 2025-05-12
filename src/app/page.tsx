@@ -650,6 +650,7 @@ export default function Home() {
     // Limpiar el estado actual
     setTableName(savedScript.tableName);
     setEditingScriptId(savedScript.id);
+    setIsAlterTable(savedScript.isAlterTable || false);
     // No limpiar el comentario de la tabla aquí
     setColumns([
       {
@@ -698,18 +699,20 @@ export default function Home() {
         !line.trim().startsWith('--') &&
         !line.trim().startsWith(')') &&
         !line.trim().startsWith('CONSTRAINT') &&
+        !line.trim().startsWith('REFERENCES') &&
         !line.includes('COMMENT')
       ) {
         // Extraer información de columnas
         const columnMatch = line.match(
-          /^\s*(\w+)\s+(\w+(?:\(\d+\))?)(?:\s+(NOT NULL))?/
+          /^\s*(\w+)\s+(\w+(?:\(\d+(?:,\d+)?\))?)/
         );
         if (columnMatch) {
-          const [, name, dataType, isNullable] = columnMatch;
+          const [, name, dataType] = columnMatch;
+          const isNullable = !line.includes('NOT NULL');
           newColumns.push({
             name,
             dataType,
-            isNullable: !isNullable,
+            isNullable,
             isPrimaryKey: false,
             constraint: '',
             hasForeignKey: false,
@@ -721,12 +724,13 @@ export default function Home() {
     });
 
     // Extraer primary keys
-    const pkMatch = savedScript.script.match(/PRIMARY KEY \((.*)\)/);
+    const pkMatch = savedScript.script.match(/PRIMARY KEY\s*\((.*?)\)/);
     if (pkMatch) {
       const pkColumns = pkMatch[1].split(',').map((col) => col.trim());
       newColumns.forEach((col) => {
         if (pkColumns.includes(col.name)) {
           col.isPrimaryKey = true;
+          col.isNullable = false;
         }
       });
     }
