@@ -143,7 +143,18 @@ export default function Home() {
 
   const updateColumn = (index: number, field: keyof Column, value: any) => {
     const newColumns = [...columns];
+
+    // Si se intenta marcar un campo PK como NULLEABLE, ignorar el cambio
+    if (field === 'isNullable' && newColumns[index].isPrimaryKey) {
+      return;
+    }
+
     newColumns[index] = { ...newColumns[index], [field]: value };
+
+    // Si se está actualizando isPrimaryKey a true, establecer isNullable como false
+    if (field === 'isPrimaryKey' && value === true) {
+      newColumns[index].isNullable = false;
+    }
 
     // Si se está actualizando isPrimaryKey a true, mover la columna después de los campos de llave
     if (field === 'isPrimaryKey' && value === true) {
@@ -152,15 +163,15 @@ export default function Home() {
 
       // Si la columna actual no es uno de los campos de llave predefinidos
       if (!keyFields.includes(currentColumn.name)) {
-        // Encontrar el índice del último campo de llave
-        const lastKeyFieldIndex = newColumns.findIndex((col) =>
+        // Encontrar el índice del último campo de llave predefinido
+        const lastKeyFieldIndex = newColumns.findLastIndex((col) =>
           keyFields.includes(col.name)
         );
 
         if (lastKeyFieldIndex !== -1) {
           // Remover la columna de su posición actual
           newColumns.splice(index, 1);
-          // Insertar después del último campo de llave
+          // Insertar después del último campo de llave predefinido
           newColumns.splice(lastKeyFieldIndex + 1, 0, currentColumn);
         }
       }
@@ -259,8 +270,8 @@ export default function Home() {
       return;
     }
 
-    // Insertar los campos de auditoría al principio
-    setColumns((prevColumns) => [...newAuditFields, ...prevColumns]);
+    // Insertar los campos de auditoría al final
+    setColumns((prevColumns) => [...prevColumns, ...newAuditFields]);
   };
 
   const addKeyFields = () => {
@@ -920,6 +931,7 @@ export default function Home() {
                           onCheckedChange={(checked) =>
                             updateColumn(index, 'isNullable', checked)
                           }
+                          disabled={column.isPrimaryKey}
                           className="scale-125"
                         />
                       </TableCell>

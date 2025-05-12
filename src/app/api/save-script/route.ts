@@ -84,12 +84,8 @@ export async function DELETE(request: Request) {
     // Get existing scripts
     const existingScripts = (await redis.get<Script[]>(SCRIPTS_KEY)) || [];
 
-    console.log('existingScripts', existingScripts);
-
     // Filter out the script to delete
     const updatedScripts = existingScripts.filter((script) => script.id !== id);
-
-    console.log('updatedScripts', updatedScripts);
 
     // Save the updated scripts back to Redis
     const result = await redis.set(SCRIPTS_KEY, updatedScripts);
