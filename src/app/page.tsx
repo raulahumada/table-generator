@@ -59,7 +59,6 @@ interface Column {
   isPrimaryKey: boolean;
   isNullable: boolean;
   dataType: string;
-  customDataType: string;
   constraint: string;
   hasForeignKey: boolean;
   foreignTable: string;
@@ -85,7 +84,6 @@ export default function Home() {
       isPrimaryKey: false,
       isNullable: true,
       dataType: '',
-      customDataType: '',
       constraint: '',
       hasForeignKey: false,
       foreignTable: '',
@@ -221,7 +219,6 @@ export default function Home() {
         isPrimaryKey: false,
         isNullable: true,
         dataType: '',
-        customDataType: '',
         constraint: '',
         hasForeignKey: false,
         foreignTable: '',
@@ -280,7 +277,6 @@ export default function Home() {
         isPrimaryKey: false,
         isNullable: true,
         dataType: 'DATE',
-        customDataType: '',
         constraint: '',
         hasForeignKey: false,
         foreignTable: '',
@@ -292,7 +288,6 @@ export default function Home() {
         isPrimaryKey: false,
         isNullable: true,
         dataType: 'DATE',
-        customDataType: '',
         constraint: '',
         hasForeignKey: false,
         foreignTable: '',
@@ -304,7 +299,6 @@ export default function Home() {
         isPrimaryKey: false,
         isNullable: true,
         dataType: 'NUMBER(5)',
-        customDataType: '',
         constraint: '',
         hasForeignKey: false,
         foreignTable: '',
@@ -341,7 +335,6 @@ export default function Home() {
         isPrimaryKey: true,
         isNullable: false,
         dataType: 'CHAR(1)',
-        customDataType: '',
         constraint: '',
         hasForeignKey: false,
         foreignTable: '',
@@ -352,7 +345,6 @@ export default function Home() {
         isPrimaryKey: true,
         isNullable: false,
         dataType: 'NUMBER(5)',
-        customDataType: '',
         constraint: '',
         hasForeignKey: false,
         foreignTable: '',
@@ -363,7 +355,6 @@ export default function Home() {
         isPrimaryKey: true,
         isNullable: false,
         dataType: 'NUMBER(5)',
-        customDataType: '',
         constraint: '',
         hasForeignKey: false,
         foreignTable: '',
@@ -374,7 +365,6 @@ export default function Home() {
         isPrimaryKey: true,
         isNullable: false,
         dataType: 'NUMBER(10)',
-        customDataType: '',
         constraint: '',
         hasForeignKey: false,
         foreignTable: '',
@@ -429,27 +419,25 @@ export default function Home() {
         script += `-- ${tableComment}\n\n`;
       }
 
-      // Agregar verificación y eliminación de la tabla si existe
-      script += `DECLARE\n`;
-      script += `  v_count NUMBER;\n`;
-      script += `BEGIN\n`;
-      script += `  SELECT COUNT(*) INTO v_count FROM user_tables WHERE table_name = '${tableName}';\n`;
-      script += `  IF v_count > 0 THEN\n`;
-      script += `    EXECUTE IMMEDIATE 'DROP TABLE ${tableName} CASCADE CONSTRAINTS';\n`;
-      script += `  END IF;\n`;
-      script += `END;\n`;
-      script += `/\n\n`;
+      // Solo agregar el bloque de eliminación si no estamos editando un script existente
+      if (!editingScriptId) {
+        script += `DECLARE\n`;
+        script += `  v_count NUMBER;\n`;
+        script += `BEGIN\n`;
+        script += `  SELECT COUNT(*) INTO v_count FROM user_tables WHERE table_name = '${tableName}';\n`;
+        script += `  IF v_count > 0 THEN\n`;
+        script += `    EXECUTE IMMEDIATE 'DROP TABLE ${tableName} CASCADE CONSTRAINTS';\n`;
+        script += `  END IF;\n`;
+        script += `END;\n`;
+        script += `/\n\n`;
+      }
 
       script += `CREATE TABLE ${tableName} (\n`;
 
       // Primero generamos las columnas
       columns.forEach((column, index) => {
         if (column.name) {
-          script += `    ${column.name} ${
-            column.dataType === 'custom'
-              ? column.customDataType
-              : column.dataType
-          }`;
+          script += `    ${column.name} ${column.dataType}`;
           if (!column.isNullable) script += ' NOT NULL';
           if (column.constraint) script += ` ${column.constraint}`;
           script += ',\n';
@@ -507,11 +495,7 @@ export default function Home() {
       // Generar ALTER TABLE para cada columna
       columns.forEach((column) => {
         if (column.name) {
-          script += `ALTER TABLE ${tableName} ADD ${column.name} ${
-            column.dataType === 'custom'
-              ? column.customDataType
-              : column.dataType
-          }`;
+          script += `ALTER TABLE ${tableName} ADD ${column.name} ${column.dataType}`;
           if (!column.isNullable) script += ' NOT NULL';
           if (column.constraint) script += ` ${column.constraint}`;
           script += ';\n';
@@ -599,9 +583,7 @@ export default function Home() {
 
     // Parámetros para las columnas no PK
     nonPrimaryColumns.forEach((column, index) => {
-      script += `    P_${column.name} IN ${
-        column.dataType === 'custom' ? column.customDataType : column.dataType
-      }`;
+      script += `    P_${column.name} IN ${column.dataType}`;
       if (index < nonPrimaryColumns.length - 1) script += ',';
       script += '\n';
     });
@@ -688,9 +670,7 @@ export default function Home() {
 
     // Parámetros para todas las columnas
     columns.forEach((column, index) => {
-      script += `    P_${column.name} IN ${
-        column.dataType === 'custom' ? column.customDataType : column.dataType
-      }`;
+      script += `    P_${column.name} IN ${column.dataType}`;
       if (index < columns.length - 1) script += ',';
       script += '\n';
     });
@@ -768,26 +748,6 @@ export default function Home() {
     let isInsideDropBlock = false;
     let isInsideCreateTable = false;
 
-    // Lista de tipos de datos predefinidos
-    const predefinedTypes = [
-      'NUMBER',
-      'NUMBER(5)',
-      'NUMBER(9,6)',
-      'NUMBER(10)',
-      'NUMBER(10,2)',
-      'NUMBER(18,6)',
-      'NUMBER(20)',
-      'VARCHAR2(255)',
-      'CLOB',
-      'DATE',
-      'TIMESTAMP',
-      'CHAR(1)',
-      'CHAR(12)',
-      'CHAR(20)',
-      'CHAR(30)',
-      'BLOB',
-    ];
-
     // Procesar cada línea del script
     lines.forEach((line) => {
       const trimmedLine = line.trim();
@@ -807,13 +767,9 @@ export default function Home() {
         return;
       }
 
-      // Detectar inicio y fin de CREATE TABLE
+      // Detectar CREATE TABLE
       if (trimmedLine.startsWith('CREATE TABLE')) {
         isInsideCreateTable = true;
-        return;
-      }
-      if (isInsideCreateTable && trimmedLine === ');') {
-        isInsideCreateTable = false;
         return;
       }
 
@@ -845,19 +801,15 @@ export default function Home() {
 
       // Procesar definiciones de columnas
       if (savedScript.isAlterTable) {
-        // Para ALTER TABLE, solo procesar líneas que agreguen columnas
+        // Para ALTER TABLE
         const alterColumnMatch = trimmedLine.match(
-          /ALTER TABLE .* ADD (\w+) ([\w(),\s]+)( NOT NULL)?/
+          /ALTER TABLE .* ADD (\w+) ([\w()]+)( NOT NULL)?/
         );
-        if (alterColumnMatch && !trimmedLine.includes('CONSTRAINT')) {
+        if (alterColumnMatch) {
           const [, name, dataType, notNull] = alterColumnMatch;
-          const cleanDataType = dataType.trim();
-          const isPredefined = predefinedTypes.includes(cleanDataType);
-
           newColumns.push({
             name,
-            dataType: isPredefined ? cleanDataType : 'custom',
-            customDataType: isPredefined ? '' : cleanDataType,
+            dataType,
             isPrimaryKey: false,
             isNullable: !notNull,
             constraint: '',
@@ -866,55 +818,89 @@ export default function Home() {
             comment: '',
           });
         }
+
+        // Procesar PRIMARY KEY en ALTER TABLE
+        const pkMatch = trimmedLine.match(
+          /ADD CONSTRAINT .* PRIMARY KEY \((.*)\)/
+        );
+        if (pkMatch) {
+          const pkColumns = pkMatch[1].split(',').map((col) => col.trim());
+          newColumns.forEach((col) => {
+            if (pkColumns.includes(col.name)) {
+              col.isPrimaryKey = true;
+              col.isNullable = false;
+            }
+          });
+        }
+
+        // Procesar FOREIGN KEY en ALTER TABLE
+        const fkMatch = trimmedLine.match(
+          /ADD CONSTRAINT .* FOREIGN KEY \((.*)\) REFERENCES (.*) \((.*)\)/
+        );
+        if (fkMatch) {
+          const [, columnName, foreignTable] = fkMatch;
+          const column = newColumns.find(
+            (col) => col.name === columnName.trim()
+          );
+          if (column) {
+            column.hasForeignKey = true;
+            column.foreignTable = foreignTable.trim();
+          }
+        }
       } else {
         // Para CREATE TABLE, solo procesar columnas dentro del bloque de creación
+        if (isInsideCreateTable && trimmedLine === ');') {
+          isInsideCreateTable = false;
+          return;
+        }
+
         if (isInsideCreateTable) {
           const columnMatch = trimmedLine.match(
-            /^\s*(\w+)\s+([\w(),\s]+)( NOT NULL)?/
+            /^\s*(\w+)\s+(\w+(?:\(\d+(?:,\d+)?\))?)/
           );
           if (columnMatch && !trimmedLine.startsWith('CONSTRAINT')) {
-            const [, name, dataType, notNull] = columnMatch;
-            const cleanDataType = dataType.trim();
-            const isPredefined = predefinedTypes.includes(cleanDataType);
+            const [, name, dataType] = columnMatch;
+            const isNotNull = trimmedLine.includes('NOT NULL');
             const isPK = trimmedLine.toLowerCase().includes('primary key');
 
             newColumns.push({
               name,
-              dataType: isPredefined ? cleanDataType : 'custom',
-              customDataType: isPredefined ? '' : cleanDataType,
+              dataType,
               isPrimaryKey: isPK,
-              isNullable: !notNull && !isPK,
+              isNullable: !isNotNull && !isPK,
               constraint: '',
               hasForeignKey: false,
               foreignTable: '',
               comment: '',
             });
           }
-        }
-      }
 
-      // Procesar PRIMARY KEY
-      const pkMatch = trimmedLine.match(/PRIMARY KEY\s*\((.*?)\)/);
-      if (pkMatch) {
-        const pkColumns = pkMatch[1].split(',').map((col) => col.trim());
-        newColumns.forEach((col) => {
-          if (pkColumns.includes(col.name)) {
-            col.isPrimaryKey = true;
-            col.isNullable = false;
+          // Procesar PRIMARY KEY en CREATE TABLE
+          const pkMatch = trimmedLine.match(/PRIMARY KEY\s*\((.*?)\)/);
+          if (pkMatch) {
+            const pkColumns = pkMatch[1].split(',').map((col) => col.trim());
+            newColumns.forEach((col) => {
+              if (pkColumns.includes(col.name)) {
+                col.isPrimaryKey = true;
+                col.isNullable = false;
+              }
+            });
           }
-        });
-      }
 
-      // Procesar FOREIGN KEY
-      const fkMatch = trimmedLine.match(
-        /FOREIGN KEY\s*\((.*?)\)\s*REFERENCES\s*(.*?)\s*\((.*?)\)/
-      );
-      if (fkMatch) {
-        const [, columnName, foreignTable] = fkMatch;
-        const column = newColumns.find((col) => col.name === columnName.trim());
-        if (column) {
-          column.hasForeignKey = true;
-          column.foreignTable = foreignTable.trim();
+          // Procesar FOREIGN KEY en CREATE TABLE
+          const fkMatch = trimmedLine.match(
+            /FOREIGN KEY\s*\((.*?)\)\s*REFERENCES\s*(.*?)\s*\((.*?)\)/
+          );
+          if (fkMatch) {
+            const [, columnName, foreignTable] = fkMatch;
+            const column = newColumns.find(
+              (col) => col.name === columnName.trim()
+            );
+            if (column) {
+              column.hasForeignKey = true;
+              column.foreignTable = foreignTable.trim();
+            }
+          }
         }
       }
     });
@@ -926,7 +912,6 @@ export default function Home() {
         isPrimaryKey: false,
         isNullable: true,
         dataType: '',
-        customDataType: '',
         constraint: '',
         hasForeignKey: false,
         foreignTable: '',
@@ -1228,119 +1213,48 @@ export default function Home() {
                         />
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-2">
-                          <Select
-                            value={column.dataType}
-                            onValueChange={(value) => {
-                              if (value === 'custom') {
-                                updateColumn(index, 'customDataType', '');
-                              }
-                              updateColumn(index, 'dataType', value);
-                            }}
-                          >
-                            <SelectTrigger className="w-[180px]">
-                              <SelectValue placeholder="Seleccionar" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="NUMBER">NUMBER</SelectItem>
-                              <SelectItem value="NUMBER(5)">
-                                NUMBER(5)
-                              </SelectItem>
-                              <SelectItem value="NUMBER(9,6)">
-                                NUMBER(9,6)
-                              </SelectItem>
-                              <SelectItem value="NUMBER(10)">
-                                NUMBER(10)
-                              </SelectItem>
-                              <SelectItem value="NUMBER(10,2)">
-                                NUMBER(10,2)
-                              </SelectItem>
-                              <SelectItem value="NUMBER(18,6)">
-                                NUMBER(18,6)
-                              </SelectItem>
-                              <SelectItem value="NUMBER(20)">
-                                NUMBER(20)
-                              </SelectItem>
-                              <SelectItem value="VARCHAR2(255)">
-                                VARCHAR2(255)
-                              </SelectItem>
-                              <SelectItem value="CLOB">CLOB</SelectItem>
-                              <SelectItem value="DATE">DATE</SelectItem>
-                              <SelectItem value="TIMESTAMP">
-                                TIMESTAMP
-                              </SelectItem>
-                              <SelectItem value="CHAR(1)">CHAR(1)</SelectItem>
-                              <SelectItem value="CHAR(12)">CHAR(12)</SelectItem>
-                              <SelectItem value="CHAR(20)">CHAR(20)</SelectItem>
-                              <SelectItem value="CHAR(30)">CHAR(30)</SelectItem>
-                              <SelectItem value="BLOB">BLOB</SelectItem>
-                              <SelectItem value="custom">
-                                Personalizado...
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          {column.dataType === 'custom' && (
-                            <div className="flex items-center gap-2 min-w-[300px]">
-                              <Select
-                                value={
-                                  column.customDataType.split('(')[0] || ''
-                                }
-                                onValueChange={(baseType) => {
-                                  updateColumn(
-                                    index,
-                                    'customDataType',
-                                    baseType === 'DATE' ||
-                                      baseType === 'TIMESTAMP' ||
-                                      baseType === 'CLOB' ||
-                                      baseType === 'BLOB'
-                                      ? baseType
-                                      : `${baseType}()`
-                                  );
-                                }}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Tipo base" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="NUMBER">NUMBER</SelectItem>
-                                  <SelectItem value="VARCHAR2">
-                                    VARCHAR2
-                                  </SelectItem>
-                                  <SelectItem value="CHAR">CHAR</SelectItem>
-                                  <SelectItem value="DATE">DATE</SelectItem>
-                                  <SelectItem value="TIMESTAMP">
-                                    TIMESTAMP
-                                  </SelectItem>
-                                  <SelectItem value="CLOB">CLOB</SelectItem>
-                                  <SelectItem value="BLOB">BLOB</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              {column.customDataType &&
-                                !['DATE', 'TIMESTAMP', 'CLOB', 'BLOB'].includes(
-                                  column.customDataType
-                                ) && (
-                                  <Input
-                                    placeholder="Ej: 10 o 10,2"
-                                    value={
-                                      column.customDataType.match(
-                                        /\((.*)\)/
-                                      )?.[1] || ''
-                                    }
-                                    onChange={(e) => {
-                                      const baseType =
-                                        column.customDataType.split('(')[0];
-                                      updateColumn(
-                                        index,
-                                        'customDataType',
-                                        `${baseType}(${e.target.value})`
-                                      );
-                                    }}
-                                    className="w-32"
-                                  />
-                                )}
-                            </div>
-                          )}
-                        </div>
+                        <Select
+                          value={column.dataType}
+                          onValueChange={(value) =>
+                            updateColumn(index, 'dataType', value)
+                          }
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Seleccionar" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="NUMBER">NUMBER</SelectItem>
+                            <SelectItem value="NUMBER(5)">NUMBER(5)</SelectItem>
+                            <SelectItem value="NUMBER(9,6)">
+                              NUMBER(9,6)
+                            </SelectItem>
+                            <SelectItem value="NUMBER(10)">
+                              NUMBER(10)
+                            </SelectItem>
+                            <SelectItem value="NUMBER(10,2)">
+                              NUMBER(10,2)
+                            </SelectItem>
+                            <SelectItem value="NUMBER(18,6)">
+                              NUMBER(18,6)
+                            </SelectItem>
+                            <SelectItem value="NUMBER(20)">
+                              NUMBER(20)
+                            </SelectItem>
+
+                            <SelectItem value="VARCHAR2(255)">
+                              VARCHAR2(255)
+                            </SelectItem>
+                            <SelectItem value="CLOB">CLOB</SelectItem>
+                            <SelectItem value="DATE">DATE</SelectItem>
+                            <SelectItem value="TIMESTAMP">TIMESTAMP</SelectItem>
+                            <SelectItem value="CHAR(1)">CHAR(1)</SelectItem>
+                            <SelectItem value="CHAR(12)">CHAR(12)</SelectItem>
+                            <SelectItem value="CHAR(20)">CHAR(20)</SelectItem>
+                            <SelectItem value="CHAR(30)">CHAR(30)</SelectItem>
+                            <SelectItem value="BLOB">BLOB</SelectItem>
+                            <SelectItem value="GENERIC">GENERIC</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell>
                         <Input
