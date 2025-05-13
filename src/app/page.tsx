@@ -59,6 +59,7 @@ interface Column {
   isPrimaryKey: boolean;
   isNullable: boolean;
   dataType: string;
+  customDataType: string;
   constraint: string;
   hasForeignKey: boolean;
   foreignTable: string;
@@ -84,6 +85,7 @@ export default function Home() {
       isPrimaryKey: false,
       isNullable: true,
       dataType: '',
+      customDataType: '',
       constraint: '',
       hasForeignKey: false,
       foreignTable: '',
@@ -219,6 +221,7 @@ export default function Home() {
         isPrimaryKey: false,
         isNullable: true,
         dataType: '',
+        customDataType: '',
         constraint: '',
         hasForeignKey: false,
         foreignTable: '',
@@ -277,6 +280,7 @@ export default function Home() {
         isPrimaryKey: false,
         isNullable: true,
         dataType: 'DATE',
+        customDataType: '',
         constraint: '',
         hasForeignKey: false,
         foreignTable: '',
@@ -288,6 +292,7 @@ export default function Home() {
         isPrimaryKey: false,
         isNullable: true,
         dataType: 'DATE',
+        customDataType: '',
         constraint: '',
         hasForeignKey: false,
         foreignTable: '',
@@ -299,6 +304,7 @@ export default function Home() {
         isPrimaryKey: false,
         isNullable: true,
         dataType: 'NUMBER(5)',
+        customDataType: '',
         constraint: '',
         hasForeignKey: false,
         foreignTable: '',
@@ -335,6 +341,7 @@ export default function Home() {
         isPrimaryKey: true,
         isNullable: false,
         dataType: 'CHAR(1)',
+        customDataType: '',
         constraint: '',
         hasForeignKey: false,
         foreignTable: '',
@@ -345,6 +352,7 @@ export default function Home() {
         isPrimaryKey: true,
         isNullable: false,
         dataType: 'NUMBER(5)',
+        customDataType: '',
         constraint: '',
         hasForeignKey: false,
         foreignTable: '',
@@ -355,6 +363,7 @@ export default function Home() {
         isPrimaryKey: true,
         isNullable: false,
         dataType: 'NUMBER(5)',
+        customDataType: '',
         constraint: '',
         hasForeignKey: false,
         foreignTable: '',
@@ -365,6 +374,7 @@ export default function Home() {
         isPrimaryKey: true,
         isNullable: false,
         dataType: 'NUMBER(10)',
+        customDataType: '',
         constraint: '',
         hasForeignKey: false,
         foreignTable: '',
@@ -435,7 +445,11 @@ export default function Home() {
       // Primero generamos las columnas
       columns.forEach((column, index) => {
         if (column.name) {
-          script += `    ${column.name} ${column.dataType}`;
+          script += `    ${column.name} ${
+            column.dataType === 'custom'
+              ? column.customDataType
+              : column.dataType
+          }`;
           if (!column.isNullable) script += ' NOT NULL';
           if (column.constraint) script += ` ${column.constraint}`;
           script += ',\n';
@@ -493,7 +507,11 @@ export default function Home() {
       // Generar ALTER TABLE para cada columna
       columns.forEach((column) => {
         if (column.name) {
-          script += `ALTER TABLE ${tableName} ADD ${column.name} ${column.dataType}`;
+          script += `ALTER TABLE ${tableName} ADD ${column.name} ${
+            column.dataType === 'custom'
+              ? column.customDataType
+              : column.dataType
+          }`;
           if (!column.isNullable) script += ' NOT NULL';
           if (column.constraint) script += ` ${column.constraint}`;
           script += ';\n';
@@ -581,7 +599,9 @@ export default function Home() {
 
     // Parámetros para las columnas no PK
     nonPrimaryColumns.forEach((column, index) => {
-      script += `    P_${column.name} IN ${column.dataType}`;
+      script += `    P_${column.name} IN ${
+        column.dataType === 'custom' ? column.customDataType : column.dataType
+      }`;
       if (index < nonPrimaryColumns.length - 1) script += ',';
       script += '\n';
     });
@@ -668,7 +688,9 @@ export default function Home() {
 
     // Parámetros para todas las columnas
     columns.forEach((column, index) => {
-      script += `    P_${column.name} IN ${column.dataType}`;
+      script += `    P_${column.name} IN ${
+        column.dataType === 'custom' ? column.customDataType : column.dataType
+      }`;
       if (index < columns.length - 1) script += ',';
       script += '\n';
     });
@@ -787,6 +809,7 @@ export default function Home() {
             dataType,
             isPrimaryKey: false,
             isNullable: !notNull,
+            customDataType: '',
             constraint: '',
             hasForeignKey: false,
             foreignTable: '',
@@ -841,6 +864,7 @@ export default function Home() {
             dataType,
             isPrimaryKey: isPK,
             isNullable: !isNotNull && !isPK,
+            customDataType: '',
             constraint: '',
             hasForeignKey: false,
             foreignTable: '',
@@ -884,6 +908,7 @@ export default function Home() {
         isPrimaryKey: false,
         isNullable: true,
         dataType: '',
+        customDataType: '',
         constraint: '',
         hasForeignKey: false,
         foreignTable: '',
@@ -1185,48 +1210,119 @@ export default function Home() {
                         />
                       </TableCell>
                       <TableCell>
-                        <Select
-                          value={column.dataType}
-                          onValueChange={(value) =>
-                            updateColumn(index, 'dataType', value)
-                          }
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Seleccionar" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="NUMBER">NUMBER</SelectItem>
-                            <SelectItem value="NUMBER(5)">NUMBER(5)</SelectItem>
-                            <SelectItem value="NUMBER(9,6)">
-                              NUMBER(9,6)
-                            </SelectItem>
-                            <SelectItem value="NUMBER(10)">
-                              NUMBER(10)
-                            </SelectItem>
-                            <SelectItem value="NUMBER(10,2)">
-                              NUMBER(10,2)
-                            </SelectItem>
-                            <SelectItem value="NUMBER(18,6)">
-                              NUMBER(18,6)
-                            </SelectItem>
-                            <SelectItem value="NUMBER(20)">
-                              NUMBER(20)
-                            </SelectItem>
-
-                            <SelectItem value="VARCHAR2(255)">
-                              VARCHAR2(255)
-                            </SelectItem>
-                            <SelectItem value="CLOB">CLOB</SelectItem>
-                            <SelectItem value="DATE">DATE</SelectItem>
-                            <SelectItem value="TIMESTAMP">TIMESTAMP</SelectItem>
-                            <SelectItem value="CHAR(1)">CHAR(1)</SelectItem>
-                            <SelectItem value="CHAR(12)">CHAR(12)</SelectItem>
-                            <SelectItem value="CHAR(20)">CHAR(20)</SelectItem>
-                            <SelectItem value="CHAR(30)">CHAR(30)</SelectItem>
-                            <SelectItem value="BLOB">BLOB</SelectItem>
-                            <SelectItem value="GENERIC">GENERIC</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <div className="flex gap-2">
+                          <Select
+                            value={column.dataType}
+                            onValueChange={(value) => {
+                              if (value === 'custom') {
+                                updateColumn(index, 'customDataType', '');
+                              }
+                              updateColumn(index, 'dataType', value);
+                            }}
+                          >
+                            <SelectTrigger className="w-[180px]">
+                              <SelectValue placeholder="Seleccionar" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="NUMBER">NUMBER</SelectItem>
+                              <SelectItem value="NUMBER(5)">
+                                NUMBER(5)
+                              </SelectItem>
+                              <SelectItem value="NUMBER(9,6)">
+                                NUMBER(9,6)
+                              </SelectItem>
+                              <SelectItem value="NUMBER(10)">
+                                NUMBER(10)
+                              </SelectItem>
+                              <SelectItem value="NUMBER(10,2)">
+                                NUMBER(10,2)
+                              </SelectItem>
+                              <SelectItem value="NUMBER(18,6)">
+                                NUMBER(18,6)
+                              </SelectItem>
+                              <SelectItem value="NUMBER(20)">
+                                NUMBER(20)
+                              </SelectItem>
+                              <SelectItem value="VARCHAR2(255)">
+                                VARCHAR2(255)
+                              </SelectItem>
+                              <SelectItem value="CLOB">CLOB</SelectItem>
+                              <SelectItem value="DATE">DATE</SelectItem>
+                              <SelectItem value="TIMESTAMP">
+                                TIMESTAMP
+                              </SelectItem>
+                              <SelectItem value="CHAR(1)">CHAR(1)</SelectItem>
+                              <SelectItem value="CHAR(12)">CHAR(12)</SelectItem>
+                              <SelectItem value="CHAR(20)">CHAR(20)</SelectItem>
+                              <SelectItem value="CHAR(30)">CHAR(30)</SelectItem>
+                              <SelectItem value="BLOB">BLOB</SelectItem>
+                              <SelectItem value="custom">
+                                Personalizado...
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {column.dataType === 'custom' && (
+                            <div className="flex items-center gap-2 min-w-[300px]">
+                              <Select
+                                value={
+                                  column.customDataType.split('(')[0] || ''
+                                }
+                                onValueChange={(baseType) => {
+                                  updateColumn(
+                                    index,
+                                    'customDataType',
+                                    baseType === 'DATE' ||
+                                      baseType === 'TIMESTAMP' ||
+                                      baseType === 'CLOB' ||
+                                      baseType === 'BLOB'
+                                      ? baseType
+                                      : `${baseType}()`
+                                  );
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Tipo base" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="NUMBER">NUMBER</SelectItem>
+                                  <SelectItem value="VARCHAR2">
+                                    VARCHAR2
+                                  </SelectItem>
+                                  <SelectItem value="CHAR">CHAR</SelectItem>
+                                  <SelectItem value="DATE">DATE</SelectItem>
+                                  <SelectItem value="TIMESTAMP">
+                                    TIMESTAMP
+                                  </SelectItem>
+                                  <SelectItem value="CLOB">CLOB</SelectItem>
+                                  <SelectItem value="BLOB">BLOB</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              {column.customDataType &&
+                                !['DATE', 'TIMESTAMP', 'CLOB', 'BLOB'].includes(
+                                  column.customDataType
+                                ) && (
+                                  <Input
+                                    placeholder="Ej: 10 o 10,2"
+                                    value={
+                                      column.customDataType.match(
+                                        /\((.*)\)/
+                                      )?.[1] || ''
+                                    }
+                                    onChange={(e) => {
+                                      const baseType =
+                                        column.customDataType.split('(')[0];
+                                      updateColumn(
+                                        index,
+                                        'customDataType',
+                                        `${baseType}(${e.target.value})`
+                                      );
+                                    }}
+                                    className="w-32"
+                                  />
+                                )}
+                            </div>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Input
