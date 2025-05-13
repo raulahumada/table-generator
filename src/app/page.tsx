@@ -765,6 +765,8 @@ export default function Home() {
     const lines = savedScript.script.split('\n');
     const newColumns: Column[] = [];
     let currentTableComment = '';
+    let isInsideDropBlock = false;
+    let isInsideCreateTable = false;
 
     // Lista de tipos de datos predefinidos
     const predefinedTypes = [
@@ -789,6 +791,31 @@ export default function Home() {
     // Procesar cada línea del script
     lines.forEach((line) => {
       const trimmedLine = line.trim();
+
+      // Ignorar el bloque DECLARE/BEGIN/END
+      if (
+        trimmedLine.startsWith('DECLARE') ||
+        trimmedLine.startsWith('BEGIN')
+      ) {
+        isInsideDropBlock = true;
+        return;
+      }
+      if (isInsideDropBlock) {
+        if (trimmedLine === 'END;' || trimmedLine === '/') {
+          isInsideDropBlock = false;
+        }
+        return;
+      }
+
+      // Detectar inicio y fin de CREATE TABLE
+      if (trimmedLine.startsWith('CREATE TABLE')) {
+        isInsideCreateTable = true;
+        return;
+      }
+      if (isInsideCreateTable && trimmedLine === ');') {
+        isInsideCreateTable = false;
+        return;
+      }
 
       // Extraer comentario de tabla
       const tableCommentMatch = trimmedLine.match(
@@ -818,11 +845,11 @@ export default function Home() {
 
       // Procesar definiciones de columnas
       if (savedScript.isAlterTable) {
-        // Para ALTER TABLE
+        // Para ALTER TABLE, solo procesar líneas que agreguen columnas
         const alterColumnMatch = trimmedLine.match(
           /ALTER TABLE .* ADD (\w+) ([\w(),\s]+)( NOT NULL)?/
         );
-        if (alterColumnMatch) {
+        if (alterColumnMatch && !trimmedLine.includes('CONSTRAINT')) {
           const [, name, dataType, notNull] = alterColumnMatch;
           const cleanDataType = dataType.trim();
           const isPredefined = predefinedTypes.includes(cleanDataType);
@@ -840,31 +867,29 @@ export default function Home() {
           });
         }
       } else {
-        // Para CREATE TABLE
-        if (trimmedLine.startsWith('CREATE TABLE')) {
-          return;
-        }
+        // Para CREATE TABLE, solo procesar columnas dentro del bloque de creación
+        if (isInsideCreateTable) {
+          const columnMatch = trimmedLine.match(
+            /^\s*(\w+)\s+([\w(),\s]+)( NOT NULL)?/
+          );
+          if (columnMatch && !trimmedLine.startsWith('CONSTRAINT')) {
+            const [, name, dataType, notNull] = columnMatch;
+            const cleanDataType = dataType.trim();
+            const isPredefined = predefinedTypes.includes(cleanDataType);
+            const isPK = trimmedLine.toLowerCase().includes('primary key');
 
-        const columnMatch = trimmedLine.match(
-          /^\s*(\w+)\s+([\w(),\s]+)( NOT NULL)?/
-        );
-        if (columnMatch && !trimmedLine.startsWith('CONSTRAINT')) {
-          const [, name, dataType, notNull] = columnMatch;
-          const cleanDataType = dataType.trim();
-          const isPredefined = predefinedTypes.includes(cleanDataType);
-          const isPK = trimmedLine.toLowerCase().includes('primary key');
-
-          newColumns.push({
-            name,
-            dataType: isPredefined ? cleanDataType : 'custom',
-            customDataType: isPredefined ? '' : cleanDataType,
-            isPrimaryKey: isPK,
-            isNullable: !notNull && !isPK,
-            constraint: '',
-            hasForeignKey: false,
-            foreignTable: '',
-            comment: '',
-          });
+            newColumns.push({
+              name,
+              dataType: isPredefined ? cleanDataType : 'custom',
+              customDataType: isPredefined ? '' : cleanDataType,
+              isPrimaryKey: isPK,
+              isNullable: !notNull && !isPK,
+              constraint: '',
+              hasForeignKey: false,
+              foreignTable: '',
+              comment: '',
+            });
+          }
         }
       }
 
