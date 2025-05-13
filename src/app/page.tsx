@@ -1249,6 +1249,7 @@ export default function Home() {
                             <SelectItem value="TIMESTAMP">TIMESTAMP</SelectItem>
                             <SelectItem value="CHAR(1)">CHAR(1)</SelectItem>
                             <SelectItem value="CHAR(12)">CHAR(12)</SelectItem>
+                            <SelectItem value="CHAR(14)">CHAR(14)</SelectItem>
                             <SelectItem value="CHAR(20)">CHAR(20)</SelectItem>
                             <SelectItem value="CHAR(30)">CHAR(30)</SelectItem>
                             <SelectItem value="BLOB">BLOB</SelectItem>
