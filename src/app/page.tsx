@@ -407,6 +407,11 @@ export default function Home() {
     }
 
     let script = '';
+    const primaryKeys = columns
+      .filter((col) => col.isPrimaryKey && col.name)
+      .map((col) => col.name);
+
+    const hasPrimaryKeys = primaryKeys.length > 0;
 
     if (!isAlterTable) {
       script = `-- Creación de la tabla ${tableName}\n`;
@@ -422,31 +427,52 @@ export default function Home() {
           script += `    ${column.name} ${column.dataType}`;
           if (!column.isNullable) script += ' NOT NULL';
           if (column.constraint) script += ` ${column.constraint}`;
-          if (index < columns.length - 1) script += ',';
-          script += '\n';
+          script += ',\n';
         }
       });
 
-      // Luego agregamos las constraints de primary key
-      const primaryKeys = columns
-        .filter((col) => col.isPrimaryKey && col.name)
-        .map((col) => col.name);
+      // Quitamos la última coma y cerramos el paréntesis
+      script = script.slice(0, -2) + '\n);\n\n';
 
-      if (primaryKeys.length > 0) {
-        script += `    ,CONSTRAINT PK_${tableName} PRIMARY KEY (${primaryKeys.join(
-          ', '
-        )})\n`;
+      // Si hay PKs, primero creamos el índice
+      if (hasPrimaryKeys) {
+        script += `CREATE UNIQUE INDEX INSUDB.XPK${tableName} ON INSUDB.${tableName}\n`;
+        script += `(${primaryKeys.join(', ')})\n`;
+        script += `LOGGING\n`;
+        script += `TABLESPACE INDICE1\n`;
+        script += `PCTFREE    10\n`;
+        script += `INITRANS   2\n`;
+        script += `MAXTRANS   255\n`;
+        script += `STORAGE    (\n`;
+        script += `            INITIAL          128K\n`;
+        script += `            NEXT             1M\n`;
+        script += `            MINEXTENTS       1\n`;
+        script += `            MAXEXTENTS       UNLIMITED\n`;
+        script += `            PCTINCREASE      0\n`;
+        script += `            BUFFER_POOL      DEFAULT\n`;
+        script += `            FLASH_CACHE      DEFAULT\n`;
+        script += `            CELL_FLASH_CACHE DEFAULT\n`;
+        script += `           )\n`;
+        script += `NOPARALLEL;\n\n`;
+
+        // Luego agregamos la constraint de primary key
+        script += `ALTER TABLE ${tableName} ADD (\n`;
+        script += `  CONSTRAINT XPK${tableName}\n`;
+        script += `  PRIMARY KEY\n`;
+        script += `  (${primaryKeys.join(', ')})\n`;
+        script += `  USING INDEX INSUDB.XPK${tableName}\n`;
+        script += `  ENABLE VALIDATE\n`;
+        script += `);\n\n`;
       }
 
       // Agregamos las constraints de foreign key
       columns.forEach((column) => {
         if (column.hasForeignKey && column.foreignTable && column.name) {
-          script += `    ,CONSTRAINT FK_${tableName}_${column.name} FOREIGN KEY (${column.name})\n`;
-          script += `        REFERENCES ${column.foreignTable} (${column.name})\n`;
+          script += `ALTER TABLE ${tableName} ADD CONSTRAINT FK_${tableName}_${column.name}\n`;
+          script += `    FOREIGN KEY (${column.name})\n`;
+          script += `    REFERENCES ${column.foreignTable} (${column.name});\n\n`;
         }
       });
-
-      script += ');\n\n';
     } else {
       // Generar script ALTER TABLE
       if (tableComment) {
@@ -463,21 +489,43 @@ export default function Home() {
         }
       });
 
-      // Agregar primary key constraint
-      const primaryKeys = columns
-        .filter((col) => col.isPrimaryKey && col.name)
-        .map((col) => col.name);
+      // Si hay PKs, primero creamos el índice
+      if (hasPrimaryKeys) {
+        script += `\nCREATE UNIQUE INDEX INSUDB.XPK${tableName} ON INSUDB.${tableName}\n`;
+        script += `(${primaryKeys.join(', ')})\n`;
+        script += `LOGGING\n`;
+        script += `TABLESPACE INDICE1\n`;
+        script += `PCTFREE    10\n`;
+        script += `INITRANS   2\n`;
+        script += `MAXTRANS   255\n`;
+        script += `STORAGE    (\n`;
+        script += `            INITIAL          128K\n`;
+        script += `            NEXT             1M\n`;
+        script += `            MINEXTENTS       1\n`;
+        script += `            MAXEXTENTS       UNLIMITED\n`;
+        script += `            PCTINCREASE      0\n`;
+        script += `            BUFFER_POOL      DEFAULT\n`;
+        script += `            FLASH_CACHE      DEFAULT\n`;
+        script += `            CELL_FLASH_CACHE DEFAULT\n`;
+        script += `           )\n`;
+        script += `NOPARALLEL;\n\n`;
 
-      if (primaryKeys.length > 0) {
-        script += `\nALTER TABLE ${tableName} ADD CONSTRAINT PK_${tableName} PRIMARY KEY (${primaryKeys.join(
-          ', '
-        )});\n`;
+        // Luego agregamos la constraint de primary key
+        script += `ALTER TABLE ${tableName} ADD (\n`;
+        script += `  CONSTRAINT XPK${tableName}\n`;
+        script += `  PRIMARY KEY\n`;
+        script += `  (${primaryKeys.join(', ')})\n`;
+        script += `  USING INDEX INSUDB.XPK${tableName}\n`;
+        script += `  ENABLE VALIDATE\n`;
+        script += `);\n\n`;
       }
 
       // Agregar foreign key constraints
       columns.forEach((column) => {
         if (column.hasForeignKey && column.foreignTable && column.name) {
-          script += `\nALTER TABLE ${tableName} ADD CONSTRAINT FK_${tableName}_${column.name} FOREIGN KEY (${column.name}) REFERENCES ${column.foreignTable} (${column.name});\n`;
+          script += `\nALTER TABLE ${tableName} ADD CONSTRAINT FK_${tableName}_${column.name}\n`;
+          script += `    FOREIGN KEY (${column.name})\n`;
+          script += `    REFERENCES ${column.foreignTable} (${column.name});\n`;
         }
       });
     }
