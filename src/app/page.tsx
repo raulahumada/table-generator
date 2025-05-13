@@ -419,6 +419,17 @@ export default function Home() {
         script += `-- ${tableComment}\n\n`;
       }
 
+      // Agregar verificación y eliminación de la tabla si existe
+      script += `DECLARE\n`;
+      script += `  v_count NUMBER;\n`;
+      script += `BEGIN\n`;
+      script += `  SELECT COUNT(*) INTO v_count FROM user_tables WHERE table_name = '${tableName}';\n`;
+      script += `  IF v_count > 0 THEN\n`;
+      script += `    EXECUTE IMMEDIATE 'DROP TABLE ${tableName} CASCADE CONSTRAINTS';\n`;
+      script += `  END IF;\n`;
+      script += `END;\n`;
+      script += `/\n\n`;
+
       script += `CREATE TABLE ${tableName} (\n`;
 
       // Primero generamos las columnas
