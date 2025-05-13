@@ -766,6 +766,26 @@ export default function Home() {
     const newColumns: Column[] = [];
     let currentTableComment = '';
 
+    // Lista de tipos de datos predefinidos
+    const predefinedTypes = [
+      'NUMBER',
+      'NUMBER(5)',
+      'NUMBER(9,6)',
+      'NUMBER(10)',
+      'NUMBER(10,2)',
+      'NUMBER(18,6)',
+      'NUMBER(20)',
+      'VARCHAR2(255)',
+      'CLOB',
+      'DATE',
+      'TIMESTAMP',
+      'CHAR(1)',
+      'CHAR(12)',
+      'CHAR(20)',
+      'CHAR(30)',
+      'BLOB',
+    ];
+
     // Procesar cada línea del script
     lines.forEach((line) => {
       const trimmedLine = line.trim();
@@ -800,50 +820,24 @@ export default function Home() {
       if (savedScript.isAlterTable) {
         // Para ALTER TABLE
         const alterColumnMatch = trimmedLine.match(
-          /ALTER TABLE .* ADD (\w+) ([\w()]+)( NOT NULL)?/
+          /ALTER TABLE .* ADD (\w+) ([\w(),\s]+)( NOT NULL)?/
         );
         if (alterColumnMatch) {
           const [, name, dataType, notNull] = alterColumnMatch;
+          const cleanDataType = dataType.trim();
+          const isPredefined = predefinedTypes.includes(cleanDataType);
+
           newColumns.push({
             name,
-            dataType,
+            dataType: isPredefined ? cleanDataType : 'custom',
+            customDataType: isPredefined ? '' : cleanDataType,
             isPrimaryKey: false,
             isNullable: !notNull,
-            customDataType: '',
             constraint: '',
             hasForeignKey: false,
             foreignTable: '',
             comment: '',
           });
-        }
-
-        // Procesar PRIMARY KEY en ALTER TABLE
-        const pkMatch = trimmedLine.match(
-          /ADD CONSTRAINT .* PRIMARY KEY \((.*)\)/
-        );
-        if (pkMatch) {
-          const pkColumns = pkMatch[1].split(',').map((col) => col.trim());
-          newColumns.forEach((col) => {
-            if (pkColumns.includes(col.name)) {
-              col.isPrimaryKey = true;
-              col.isNullable = false;
-            }
-          });
-        }
-
-        // Procesar FOREIGN KEY en ALTER TABLE
-        const fkMatch = trimmedLine.match(
-          /ADD CONSTRAINT .* FOREIGN KEY \((.*)\) REFERENCES (.*) \((.*)\)/
-        );
-        if (fkMatch) {
-          const [, columnName, foreignTable] = fkMatch;
-          const column = newColumns.find(
-            (col) => col.name === columnName.trim()
-          );
-          if (column) {
-            column.hasForeignKey = true;
-            column.foreignTable = foreignTable.trim();
-          }
         }
       } else {
         // Para CREATE TABLE
@@ -852,51 +846,50 @@ export default function Home() {
         }
 
         const columnMatch = trimmedLine.match(
-          /^\s*(\w+)\s+(\w+(?:\(\d+(?:,\d+)?\))?)/
+          /^\s*(\w+)\s+([\w(),\s]+)( NOT NULL)?/
         );
         if (columnMatch && !trimmedLine.startsWith('CONSTRAINT')) {
-          const [, name, dataType] = columnMatch;
-          const isNotNull = trimmedLine.includes('NOT NULL');
+          const [, name, dataType, notNull] = columnMatch;
+          const cleanDataType = dataType.trim();
+          const isPredefined = predefinedTypes.includes(cleanDataType);
           const isPK = trimmedLine.toLowerCase().includes('primary key');
 
           newColumns.push({
             name,
-            dataType,
+            dataType: isPredefined ? cleanDataType : 'custom',
+            customDataType: isPredefined ? '' : cleanDataType,
             isPrimaryKey: isPK,
-            isNullable: !isNotNull && !isPK,
-            customDataType: '',
+            isNullable: !notNull && !isPK,
             constraint: '',
             hasForeignKey: false,
             foreignTable: '',
             comment: '',
           });
         }
+      }
 
-        // Procesar PRIMARY KEY en CREATE TABLE
-        const pkMatch = trimmedLine.match(/PRIMARY KEY\s*\((.*?)\)/);
-        if (pkMatch) {
-          const pkColumns = pkMatch[1].split(',').map((col) => col.trim());
-          newColumns.forEach((col) => {
-            if (pkColumns.includes(col.name)) {
-              col.isPrimaryKey = true;
-              col.isNullable = false;
-            }
-          });
-        }
-
-        // Procesar FOREIGN KEY en CREATE TABLE
-        const fkMatch = trimmedLine.match(
-          /FOREIGN KEY\s*\((.*?)\)\s*REFERENCES\s*(.*?)\s*\((.*?)\)/
-        );
-        if (fkMatch) {
-          const [, columnName, foreignTable] = fkMatch;
-          const column = newColumns.find(
-            (col) => col.name === columnName.trim()
-          );
-          if (column) {
-            column.hasForeignKey = true;
-            column.foreignTable = foreignTable.trim();
+      // Procesar PRIMARY KEY
+      const pkMatch = trimmedLine.match(/PRIMARY KEY\s*\((.*?)\)/);
+      if (pkMatch) {
+        const pkColumns = pkMatch[1].split(',').map((col) => col.trim());
+        newColumns.forEach((col) => {
+          if (pkColumns.includes(col.name)) {
+            col.isPrimaryKey = true;
+            col.isNullable = false;
           }
+        });
+      }
+
+      // Procesar FOREIGN KEY
+      const fkMatch = trimmedLine.match(
+        /FOREIGN KEY\s*\((.*?)\)\s*REFERENCES\s*(.*?)\s*\((.*?)\)/
+      );
+      if (fkMatch) {
+        const [, columnName, foreignTable] = fkMatch;
+        const column = newColumns.find((col) => col.name === columnName.trim());
+        if (column) {
+          column.hasForeignKey = true;
+          column.foreignTable = foreignTable.trim();
         }
       }
     });
