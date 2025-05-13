@@ -43,6 +43,7 @@ import {
   ClipboardCopy,
   Pencil,
   Trash2,
+  ArrowUpDown,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -241,27 +242,6 @@ export default function Home() {
       newColumns[index].isNullable = false;
     }
 
-    // Si se está actualizando isPrimaryKey a true, mover la columna después de los campos de llave
-    if (field === 'isPrimaryKey' && value === true) {
-      const keyFields = ['SCERTYPE', 'NBRANCH', 'NPRODUCT', 'NPOLICY'];
-      const currentColumn = newColumns[index];
-
-      // Si la columna actual no es uno de los campos de llave predefinidos
-      if (!keyFields.includes(currentColumn.name)) {
-        // Encontrar el índice del último campo de llave predefinido
-        const lastKeyFieldIndex = newColumns.findLastIndex((col) =>
-          keyFields.includes(col.name)
-        );
-
-        if (lastKeyFieldIndex !== -1) {
-          // Remover la columna de su posición actual
-          newColumns.splice(index, 1);
-          // Insertar después del último campo de llave predefinido
-          newColumns.splice(lastKeyFieldIndex + 1, 0, currentColumn);
-        }
-      }
-    }
-
     setColumns(newColumns);
   };
 
@@ -281,23 +261,12 @@ export default function Home() {
     const newColumns = [...columns];
     const newIndex = direction === 'up' ? index - 1 : index + 1;
 
-    // Verificar si estamos intentando mover un campo de llave
-    const keyFields = ['SCERTYPE', 'NBRANCH', 'NPRODUCT', 'NPOLICY'];
-    const isKeyField = keyFields.includes(newColumns[index].name);
-    const isTargetKeyField = keyFields.includes(newColumns[newIndex].name);
-
-    // No permitir mover campos de llave fuera de su grupo
-    if (isKeyField && !isTargetKeyField && direction === 'down') {
-      return;
-    }
-    if (!isKeyField && isTargetKeyField && direction === 'up') {
-      return;
-    }
-
+    // Intercambiar las columnas
     [newColumns[index], newColumns[newIndex]] = [
       newColumns[newIndex],
       newColumns[index],
     ];
+
     setColumns(newColumns);
   };
 
@@ -711,9 +680,147 @@ export default function Home() {
     setTableName(savedScript.tableName);
     setEditingScriptId(savedScript.id);
     setIsAlterTable(savedScript.isAlterTable || false);
-    // No limpiar el comentario de la tabla aquí
-    setColumns([
-      {
+
+    const lines = savedScript.script.split('\n');
+    const newColumns: Column[] = [];
+    let currentTableComment = '';
+
+    // Procesar cada línea del script
+    lines.forEach((line) => {
+      const trimmedLine = line.trim();
+
+      // Extraer comentario de tabla
+      const tableCommentMatch = trimmedLine.match(
+        /COMMENT ON TABLE .* IS '(.*)'/
+      );
+      if (tableCommentMatch) {
+        currentTableComment = tableCommentMatch[1];
+        setTableComment(currentTableComment);
+        return;
+      }
+
+      // Extraer comentarios de columnas
+      const columnCommentMatch = trimmedLine.match(
+        /COMMENT ON COLUMN .*\.(.*) IS '(.*)'/
+      );
+      if (columnCommentMatch) {
+        const columnName = columnCommentMatch[1].trim();
+        const comment = columnCommentMatch[2];
+        const existingColumn = newColumns.find(
+          (col) => col.name === columnName
+        );
+        if (existingColumn) {
+          existingColumn.comment = comment;
+        }
+        return;
+      }
+
+      // Procesar definiciones de columnas
+      if (savedScript.isAlterTable) {
+        // Para ALTER TABLE
+        const alterColumnMatch = trimmedLine.match(
+          /ALTER TABLE .* ADD (\w+) ([\w()]+)( NOT NULL)?/
+        );
+        if (alterColumnMatch) {
+          const [, name, dataType, notNull] = alterColumnMatch;
+          newColumns.push({
+            name,
+            dataType,
+            isPrimaryKey: false,
+            isNullable: !notNull,
+            constraint: '',
+            hasForeignKey: false,
+            foreignTable: '',
+            comment: '',
+          });
+        }
+
+        // Procesar PRIMARY KEY en ALTER TABLE
+        const pkMatch = trimmedLine.match(
+          /ADD CONSTRAINT .* PRIMARY KEY \((.*)\)/
+        );
+        if (pkMatch) {
+          const pkColumns = pkMatch[1].split(',').map((col) => col.trim());
+          newColumns.forEach((col) => {
+            if (pkColumns.includes(col.name)) {
+              col.isPrimaryKey = true;
+              col.isNullable = false;
+            }
+          });
+        }
+
+        // Procesar FOREIGN KEY en ALTER TABLE
+        const fkMatch = trimmedLine.match(
+          /ADD CONSTRAINT .* FOREIGN KEY \((.*)\) REFERENCES (.*) \((.*)\)/
+        );
+        if (fkMatch) {
+          const [, columnName, foreignTable] = fkMatch;
+          const column = newColumns.find(
+            (col) => col.name === columnName.trim()
+          );
+          if (column) {
+            column.hasForeignKey = true;
+            column.foreignTable = foreignTable.trim();
+          }
+        }
+      } else {
+        // Para CREATE TABLE
+        if (trimmedLine.startsWith('CREATE TABLE')) {
+          return;
+        }
+
+        const columnMatch = trimmedLine.match(
+          /^\s*(\w+)\s+(\w+(?:\(\d+(?:,\d+)?\))?)/
+        );
+        if (columnMatch && !trimmedLine.startsWith('CONSTRAINT')) {
+          const [, name, dataType] = columnMatch;
+          const isNotNull = trimmedLine.includes('NOT NULL');
+          const isPK = trimmedLine.toLowerCase().includes('primary key');
+
+          newColumns.push({
+            name,
+            dataType,
+            isPrimaryKey: isPK,
+            isNullable: !isNotNull && !isPK,
+            constraint: '',
+            hasForeignKey: false,
+            foreignTable: '',
+            comment: '',
+          });
+        }
+
+        // Procesar PRIMARY KEY en CREATE TABLE
+        const pkMatch = trimmedLine.match(/PRIMARY KEY\s*\((.*?)\)/);
+        if (pkMatch) {
+          const pkColumns = pkMatch[1].split(',').map((col) => col.trim());
+          newColumns.forEach((col) => {
+            if (pkColumns.includes(col.name)) {
+              col.isPrimaryKey = true;
+              col.isNullable = false;
+            }
+          });
+        }
+
+        // Procesar FOREIGN KEY en CREATE TABLE
+        const fkMatch = trimmedLine.match(
+          /FOREIGN KEY\s*\((.*?)\)\s*REFERENCES\s*(.*?)\s*\((.*?)\)/
+        );
+        if (fkMatch) {
+          const [, columnName, foreignTable] = fkMatch;
+          const column = newColumns.find(
+            (col) => col.name === columnName.trim()
+          );
+          if (column) {
+            column.hasForeignKey = true;
+            column.foreignTable = foreignTable.trim();
+          }
+        }
+      }
+    });
+
+    // Si no se encontraron columnas, agregar una vacía
+    if (newColumns.length === 0) {
+      newColumns.push({
         name: '',
         isPrimaryKey: false,
         isNullable: true,
@@ -722,76 +829,6 @@ export default function Home() {
         hasForeignKey: false,
         foreignTable: '',
         comment: '',
-      },
-    ]);
-
-    // Extraer información del script
-    const lines = savedScript.script.split('\n');
-    const newColumns: Column[] = [];
-
-    lines.forEach((line) => {
-      // Buscar líneas de columnas
-      if (line.trim().startsWith('CREATE TABLE')) {
-        // Extraer comentario de tabla si existe
-        const tableCommentMatch = savedScript.script.match(
-          /COMMENT ON TABLE .* IS '(.*)'/
-        );
-        if (tableCommentMatch) {
-          setTableComment(tableCommentMatch[1]);
-        }
-      } else if (line.trim().startsWith('COMMENT ON COLUMN')) {
-        // Extraer comentarios de columnas
-        const columnCommentMatch = line.match(
-          /COMMENT ON COLUMN .*\.(.*) IS '(.*)'/
-        );
-        if (columnCommentMatch) {
-          const columnName = columnCommentMatch[1];
-          const comment = columnCommentMatch[2];
-          const columnIndex = newColumns.findIndex(
-            (col) => col.name === columnName
-          );
-          if (columnIndex !== -1) {
-            newColumns[columnIndex].comment = comment;
-          }
-        }
-      } else if (
-        line.trim() &&
-        !line.trim().startsWith('--') &&
-        !line.trim().startsWith(')') &&
-        !line.trim().startsWith('CONSTRAINT') &&
-        !line.trim().startsWith('REFERENCES') &&
-        !line.includes('COMMENT')
-      ) {
-        // Extraer información de columnas
-        const columnMatch = line.match(
-          /^\s*(\w+)\s+(\w+(?:\(\d+(?:,\d+)?\))?)/
-        );
-        if (columnMatch) {
-          const [, name, dataType] = columnMatch;
-          const isNullable = !line.includes('NOT NULL');
-          newColumns.push({
-            name,
-            dataType,
-            isNullable,
-            isPrimaryKey: false,
-            constraint: '',
-            hasForeignKey: false,
-            foreignTable: '',
-            comment: '',
-          });
-        }
-      }
-    });
-
-    // Extraer primary keys
-    const pkMatch = savedScript.script.match(/PRIMARY KEY\s*\((.*?)\)/);
-    if (pkMatch) {
-      const pkColumns = pkMatch[1].split(',').map((col) => col.trim());
-      newColumns.forEach((col) => {
-        if (pkColumns.includes(col.name)) {
-          col.isPrimaryKey = true;
-          col.isNullable = false;
-        }
       });
     }
 
@@ -1362,37 +1399,61 @@ export default function Home() {
                     <TableHeader>
                       <TableRow>
                         <TableHead
-                          className="cursor-pointer hover:bg-muted/50"
+                          className="cursor-pointer hover:bg-muted/50 transition-colors"
                           onClick={() => requestSort('tableName')}
                         >
-                          Nombre de Tabla
-                          {sortConfig.key === 'tableName' && (
-                            <span className="ml-2">
-                              {sortConfig.direction === 'asc' ? '↑' : '↓'}
-                            </span>
-                          )}
+                          <div className="flex items-center gap-2">
+                            Nombre de Tabla
+                            {sortConfig.key === 'tableName' ? (
+                              <span className="text-primary">
+                                {sortConfig.direction === 'asc' ? (
+                                  <ArrowUp className="h-4 w-4" />
+                                ) : (
+                                  <ArrowDown className="h-4 w-4" />
+                                )}
+                              </span>
+                            ) : (
+                              <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </div>
                         </TableHead>
                         <TableHead
-                          className="cursor-pointer hover:bg-muted/50"
+                          className="cursor-pointer hover:bg-muted/50 transition-colors"
                           onClick={() => requestSort('type')}
                         >
-                          Tipo
-                          {sortConfig.key === 'type' && (
-                            <span className="ml-2">
-                              {sortConfig.direction === 'asc' ? '↑' : '↓'}
-                            </span>
-                          )}
+                          <div className="flex items-center gap-2">
+                            Tipo
+                            {sortConfig.key === 'type' ? (
+                              <span className="text-primary">
+                                {sortConfig.direction === 'asc' ? (
+                                  <ArrowUp className="h-4 w-4" />
+                                ) : (
+                                  <ArrowDown className="h-4 w-4" />
+                                )}
+                              </span>
+                            ) : (
+                              <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </div>
                         </TableHead>
                         <TableHead
-                          className="cursor-pointer hover:bg-muted/50"
+                          className="cursor-pointer hover:bg-muted/50 transition-colors"
                           onClick={() => requestSort('createdAt')}
                         >
-                          Fecha de Creación
-                          {sortConfig.key === 'createdAt' && (
-                            <span className="ml-2">
-                              {sortConfig.direction === 'asc' ? '↑' : '↓'}
-                            </span>
-                          )}
+                          <div className="flex items-center gap-2">
+                            Fecha de Creación
+                            {sortConfig.key === 'createdAt' ? (
+                              <span className="text-primary">
+                                {sortConfig.direction === 'asc' ? (
+                                  <ArrowUp className="h-4 w-4" />
+                                ) : (
+                                  <ArrowDown className="h-4 w-4" />
+                                )}
+                              </span>
+                            ) : (
+                              <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </div>
                         </TableHead>
                         <TableHead className="text-right">Acciones</TableHead>
                       </TableRow>
@@ -1520,24 +1581,34 @@ export default function Home() {
         )}
 
         <Dialog open={showPreview} onOpenChange={setShowPreview}>
-          <DialogContent className="max-w-[90vw] w-full h-[80vh]">
-            <DialogHeader>
-              <DialogTitle className="text-xl">{previewTitle}</DialogTitle>
+          <DialogContent className="max-w-[95vw] w-full max-h-[90vh] min-w-[800px]">
+            <DialogHeader className="pb-4">
+              <DialogTitle className="text-xl flex items-center gap-2">
+                <FileCode className="h-5 w-5" />
+                {previewTitle}
+              </DialogTitle>
               <DialogDescription>
                 Revisa el script generado antes de copiarlo
               </DialogDescription>
             </DialogHeader>
-            <div className="relative flex-1 overflow-hidden">
-              <pre className="p-4 bg-muted rounded-md overflow-auto h-full font-mono text-sm">
-                {previewScript}
-              </pre>
-              <Button
-                onClick={copyToClipboard}
-                variant="outline"
-                className="absolute top-2 right-2"
-              >
-                Copiar Script
-              </Button>
+            <div className="relative flex-1 min-h-[60vh]">
+              <div className="absolute inset-0 p-6">
+                <div className="relative h-full bg-muted rounded-lg">
+                  <pre className="absolute inset-0 p-6 overflow-auto font-mono text-sm whitespace-pre">
+                    {previewScript}
+                  </pre>
+                  <div className="absolute top-4 right-4 z-10 flex gap-2">
+                    <Button
+                      onClick={copyToClipboard}
+                      variant="secondary"
+                      className="flex items-center gap-2 shadow-lg hover:shadow-xl transition-shadow"
+                    >
+                      <ClipboardCopy className="h-4 w-4" />
+                      Copiar Script
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
