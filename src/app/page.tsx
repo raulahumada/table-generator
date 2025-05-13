@@ -40,6 +40,9 @@ import {
   FileCode,
   CheckCircle2,
   AlertCircle,
+  ClipboardCopy,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -48,6 +51,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import React from 'react';
 
 interface Column {
   name: string;
@@ -66,6 +70,7 @@ interface Script {
   script: string;
   createdAt: string;
   isAlterTable: boolean;
+  type?: 'CREATE TABLE' | 'ALTER TABLE';
 }
 
 export default function Home() {
@@ -105,6 +110,61 @@ export default function Home() {
   const [editingScriptId, setEditingScriptId] = useState<string | null>(null);
   const [keySequence, setKeySequence] = useState('');
   const [showEasterEgg, setShowEasterEgg] = useState(false);
+
+  // Estados para filtrado y ordenamiento
+  const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'create' | 'alter'>(
+    'all'
+  );
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof Script;
+    direction: 'asc' | 'desc';
+  }>({ key: 'createdAt', direction: 'desc' });
+
+  // Función para ordenar y filtrar scripts
+  const sortedScripts = React.useMemo(() => {
+    const sorted = [...savedScripts]
+      .map((script) => ({
+        ...script,
+        type: script.isAlterTable
+          ? ('ALTER TABLE' as const)
+          : ('CREATE TABLE' as const),
+      }))
+      .sort((a, b) => {
+        if (sortConfig.key === 'type') {
+          const typeA = a.isAlterTable ? 'ALTER TABLE' : 'CREATE TABLE';
+          const typeB = b.isAlterTable ? 'ALTER TABLE' : 'CREATE TABLE';
+          return sortConfig.direction === 'asc'
+            ? typeA.localeCompare(typeB)
+            : typeB.localeCompare(typeA);
+        }
+        if (a[sortConfig.key] < b[sortConfig.key]) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (a[sortConfig.key] > b[sortConfig.key]) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+
+    return sorted
+      .filter((script) =>
+        script.tableName.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      .filter((script) => {
+        if (typeFilter === 'all') return true;
+        if (typeFilter === 'alter') return script.isAlterTable;
+        return !script.isAlterTable;
+      });
+  }, [savedScripts, sortConfig, searchTerm, typeFilter]);
+
+  const requestSort = (key: keyof Script) => {
+    setSortConfig((current) => ({
+      key,
+      direction:
+        current.key === key && current.direction === 'asc' ? 'desc' : 'asc',
+    }));
+  };
 
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
@@ -1274,110 +1334,186 @@ export default function Home() {
             </CardHeader>
             <CardContent className="pt-6">
               <div className="space-y-4">
-                {savedScripts.map((savedScript) => (
-                  <div
-                    key={savedScript.id}
-                    className={cn(
-                      'border rounded-lg p-4 bg-card hover:bg-muted/50 transition-colors',
-                      savedScript.isAlterTable &&
-                        'bg-yellow-50/80 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800/30'
-                    )}
+                <div className="flex items-center gap-4 mb-4">
+                  <Input
+                    placeholder="Buscar por nombre de tabla..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="max-w-sm"
+                  />
+                  <Select
+                    value={typeFilter}
+                    onValueChange={(value: 'all' | 'create' | 'alter') =>
+                      setTypeFilter(value)
+                    }
                   >
-                    <div className="flex justify-between items-center mb-2">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-lg">
-                          {savedScript.tableName}
-                        </h3>
-                        {savedScript.isAlterTable && (
-                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-800/30">
-                            ALTER TABLE
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(savedScript.createdAt).toLocaleString()}
-                      </span>
-                    </div>
-                    <pre
-                      className={cn(
-                        'p-4 rounded overflow-auto max-h-40 text-sm',
-                        savedScript.isAlterTable
-                          ? 'bg-yellow-100/50 dark:bg-yellow-900/20'
-                          : 'bg-muted'
-                      )}
-                    >
-                      {savedScript.script}
-                    </pre>
-                    <div className="mt-2 flex justify-end gap-2">
-                      <Button
-                        variant={
-                          savedScript.isAlterTable ? 'outline' : 'secondary'
-                        }
-                        size="sm"
-                        onClick={() => {
-                          setPreviewScript(savedScript.script);
-                          setPreviewTitle(`Script de ${savedScript.tableName}`);
-                          setShowPreview(true);
-                        }}
-                        className={cn(
-                          'transition-all duration-200 hover:scale-105',
-                          savedScript.isAlterTable &&
-                            'border-yellow-300 dark:border-yellow-800/50 hover:bg-yellow-50/50 dark:hover:bg-yellow-950/30'
-                        )}
-                      >
-                        <FileCode
-                          className={cn(
-                            'mr-1 h-4 w-4',
-                            savedScript.isAlterTable
-                              ? 'text-yellow-600 dark:text-yellow-400'
-                              : ''
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Filtrar por tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los tipos</SelectItem>
+                      <SelectItem value="create">CREATE TABLE</SelectItem>
+                      <SelectItem value="alter">ALTER TABLE</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => requestSort('tableName')}
+                        >
+                          Nombre de Tabla
+                          {sortConfig.key === 'tableName' && (
+                            <span className="ml-2">
+                              {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                            </span>
                           )}
-                        />
-                        Ver
-                      </Button>
-                      <Button
-                        variant={
-                          savedScript.isAlterTable ? 'outline' : 'secondary'
-                        }
-                        size="sm"
-                        onClick={() => {
-                          navigator.clipboard.writeText(savedScript.script);
-                          setAlertConfig({
-                            type: 'success',
-                            title: 'Éxito',
-                            description: 'Script copiado al portapapeles',
-                          });
-                          setShowAlert(true);
-                          setTimeout(() => setShowAlert(false), 3000);
-                        }}
-                        className={cn(
-                          'transition-all duration-200 hover:scale-105',
-                          savedScript.isAlterTable &&
-                            'border-yellow-300 dark:border-yellow-800/50 hover:bg-yellow-50/50 dark:hover:bg-yellow-950/30'
-                        )}
-                      >
-                        Copiar
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => loadScript(savedScript)}
-                      >
-                        Cargar en Editor
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => {
-                          setScriptToDelete(savedScript);
-                          setShowDeleteConfirm(true);
-                        }}
-                      >
-                        Eliminar
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                        </TableHead>
+                        <TableHead
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => requestSort('type')}
+                        >
+                          Tipo
+                          {sortConfig.key === 'type' && (
+                            <span className="ml-2">
+                              {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                            </span>
+                          )}
+                        </TableHead>
+                        <TableHead
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => requestSort('createdAt')}
+                        >
+                          Fecha de Creación
+                          {sortConfig.key === 'createdAt' && (
+                            <span className="ml-2">
+                              {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                            </span>
+                          )}
+                        </TableHead>
+                        <TableHead className="text-right">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sortedScripts.map((script) => (
+                        <TableRow key={script.id}>
+                          <TableCell className="font-medium">
+                            {script.tableName}
+                          </TableCell>
+                          <TableCell>
+                            {script.isAlterTable ? (
+                              <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-800/30">
+                                ALTER TABLE
+                              </span>
+                            ) : (
+                              <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800/30">
+                                CREATE TABLE
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {new Date(script.createdAt).toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        setPreviewScript(script.script);
+                                        setPreviewTitle(
+                                          `Script de ${script.tableName}`
+                                        );
+                                        setShowPreview(true);
+                                      }}
+                                    >
+                                      <FileCode className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Ver Script</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(
+                                          script.script
+                                        );
+                                        setAlertConfig({
+                                          type: 'success',
+                                          title: 'Éxito',
+                                          description:
+                                            'Script copiado al portapapeles',
+                                        });
+                                        setShowAlert(true);
+                                        setTimeout(
+                                          () => setShowAlert(false),
+                                          3000
+                                        );
+                                      }}
+                                    >
+                                      <ClipboardCopy className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Copiar al Portapapeles</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => loadScript(script)}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Editar Script</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() => {
+                                        setScriptToDelete(script);
+                                        setShowDeleteConfirm(true);
+                                      }}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Eliminar Script</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             </CardContent>
           </Card>
