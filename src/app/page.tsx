@@ -44,6 +44,7 @@ import {
   Pencil,
   Trash2,
   ArrowUpDown,
+  FileSpreadsheet,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -736,6 +737,45 @@ export default function Home() {
       });
   };
 
+  const copyWithFormat = (script: Script) => {
+    const currentDate = new Date();
+    const formattedDate = `${currentDate
+      .getDate()
+      .toString()
+      .padStart(2, '0')}-${(currentDate.getMonth() + 1)
+      .toString()
+      .padStart(2, '0')}-${currentDate.getFullYear()}`;
+
+    let path = '';
+    if (script.isAlterTable) {
+      path = `VisualTiMELife\\vt-bbdd\\INSUDB\\DataManipulation\\01_${formattedDate}_ALTER_TABLE_${script.tableName}.sql`;
+    } else {
+      path = `VisualTiMELife\\vt-bbdd\\DataDefinition\\01_${formattedDate}_CREATE_TABLE_${script.tableName}.sql`;
+    }
+
+    navigator.clipboard
+      .writeText(path)
+      .then(() => {
+        setAlertConfig({
+          type: 'success',
+          title: 'Éxito',
+          description: 'Ruta copiada al portapapeles',
+        });
+        setShowAlert(true);
+        setTimeout(() => setShowAlert(false), 3000);
+      })
+      .catch((err) => {
+        console.error('Error al copiar:', err);
+        setAlertConfig({
+          type: 'error',
+          title: 'Error',
+          description: 'Error al copiar la ruta',
+        });
+        setShowAlert(true);
+        setTimeout(() => setShowAlert(false), 3000);
+      });
+  };
+
   const loadScript = (savedScript: Script) => {
     // Limpiar el estado actual
     setTableName(savedScript.tableName);
@@ -747,10 +787,37 @@ export default function Home() {
     let currentTableComment = '';
     let isInsideDropBlock = false;
     let isInsideCreateTable = false;
+    let currentColumn: Column | null = null;
+    let pkColumns: string[] = [];
+    let collectingPkColumns = false;
 
     // Procesar cada línea del script
     lines.forEach((line) => {
       const trimmedLine = line.trim();
+
+      // Detectar comienzo de definición de PRIMARY KEY
+      if (trimmedLine.includes('PRIMARY KEY')) {
+        collectingPkColumns = true;
+      }
+
+      // Capturar las columnas de PK en formato (col1, col2)
+      if (collectingPkColumns) {
+        const colMatch = trimmedLine.match(/\(\s*(.*?)\s*\)/);
+        if (colMatch) {
+          const cols = colMatch[1].split(',').map((col) => col.trim());
+          pkColumns = [...pkColumns, ...cols];
+          collectingPkColumns = false;
+        }
+      }
+
+      // Detectar PKs en la definición de constraint en una sola línea
+      const pkConstraintMatch = trimmedLine.match(
+        /PRIMARY KEY\s*\(\s*(.*?)\s*\)/i
+      );
+      if (pkConstraintMatch) {
+        const cols = pkConstraintMatch[1].split(',').map((col) => col.trim());
+        pkColumns = [...pkColumns, ...cols];
+      }
 
       // Ignorar el bloque DECLARE/BEGIN/END
       if (
@@ -810,7 +877,7 @@ export default function Home() {
           newColumns.push({
             name,
             dataType,
-            isPrimaryKey: false,
+            isPrimaryKey: pkColumns.includes(name),
             isNullable: !notNull,
             constraint: '',
             hasForeignKey: false,
@@ -818,92 +885,59 @@ export default function Home() {
             comment: '',
           });
         }
-
-        // Procesar PRIMARY KEY en ALTER TABLE
-        const pkMatch = trimmedLine.match(
-          /ADD CONSTRAINT .* PRIMARY KEY \((.*)\)/
-        );
-        if (pkMatch) {
-          const pkColumns = pkMatch[1].split(',').map((col) => col.trim());
-          newColumns.forEach((col) => {
-            if (pkColumns.includes(col.name)) {
-              col.isPrimaryKey = true;
-              col.isNullable = false;
-            }
-          });
-        }
-
-        // Procesar FOREIGN KEY en ALTER TABLE
-        const fkMatch = trimmedLine.match(
-          /ADD CONSTRAINT .* FOREIGN KEY \((.*)\) REFERENCES (.*) \((.*)\)/
-        );
-        if (fkMatch) {
-          const [, columnName, foreignTable] = fkMatch;
-          const column = newColumns.find(
-            (col) => col.name === columnName.trim()
-          );
-          if (column) {
-            column.hasForeignKey = true;
-            column.foreignTable = foreignTable.trim();
-          }
-        }
       } else {
-        // Para CREATE TABLE, solo procesar columnas dentro del bloque de creación
-        if (isInsideCreateTable && trimmedLine === ');') {
-          isInsideCreateTable = false;
-          return;
-        }
-
+        // Para CREATE TABLE
         if (isInsideCreateTable) {
+          if (trimmedLine === ');') {
+            isInsideCreateTable = false;
+            if (currentColumn) {
+              newColumns.push(currentColumn);
+              currentColumn = null;
+            }
+            return;
+          }
+
+          // Procesar columna individual
           const columnMatch = trimmedLine.match(
-            /^\s*(\w+)\s+(\w+(?:\(\d+(?:,\d+)?\))?)/
+            /^\s*(\w+)\s+([\w()]+)(\s+NOT NULL)?/
           );
           if (columnMatch && !trimmedLine.startsWith('CONSTRAINT')) {
-            const [, name, dataType] = columnMatch;
-            const isNotNull = trimmedLine.includes('NOT NULL');
-            const isPK = trimmedLine.toLowerCase().includes('primary key');
-
-            newColumns.push({
+            if (currentColumn) {
+              newColumns.push(currentColumn);
+            }
+            const [, name, dataType, notNull] = columnMatch;
+            currentColumn = {
               name,
               dataType,
-              isPrimaryKey: isPK,
-              isNullable: !isNotNull && !isPK,
+              isPrimaryKey: pkColumns.includes(name),
+              isNullable: !notNull,
               constraint: '',
               hasForeignKey: false,
               foreignTable: '',
               comment: '',
-            });
-          }
-
-          // Procesar PRIMARY KEY en CREATE TABLE
-          const pkMatch = trimmedLine.match(/PRIMARY KEY\s*\((.*?)\)/);
-          if (pkMatch) {
-            const pkColumns = pkMatch[1].split(',').map((col) => col.trim());
-            newColumns.forEach((col) => {
-              if (pkColumns.includes(col.name)) {
-                col.isPrimaryKey = true;
-                col.isNullable = false;
-              }
-            });
-          }
-
-          // Procesar FOREIGN KEY en CREATE TABLE
-          const fkMatch = trimmedLine.match(
-            /FOREIGN KEY\s*\((.*?)\)\s*REFERENCES\s*(.*?)\s*\((.*?)\)/
-          );
-          if (fkMatch) {
-            const [, columnName, foreignTable] = fkMatch;
-            const column = newColumns.find(
-              (col) => col.name === columnName.trim()
-            );
-            if (column) {
-              column.hasForeignKey = true;
-              column.foreignTable = foreignTable.trim();
-            }
+            };
           }
         }
       }
+
+      // Procesar FOREIGN KEY
+      const fkMatch = trimmedLine.match(
+        /FOREIGN KEY\s*\((.*?)\)\s*REFERENCES\s*(.*?)\s*\((.*?)\)/
+      );
+      if (fkMatch) {
+        const [, columnName, foreignTable] = fkMatch;
+        const column = newColumns.find((col) => col.name === columnName.trim());
+        if (column) {
+          column.hasForeignKey = true;
+          column.foreignTable = foreignTable.trim();
+        }
+      }
     });
+
+    // Asegurarse de agregar la última columna si existe
+    if (currentColumn) {
+      newColumns.push(currentColumn);
+    }
 
     // Si no se encontraron columnas, agregar una vacía
     if (newColumns.length === 0) {
@@ -918,6 +952,18 @@ export default function Home() {
         comment: '',
       });
     }
+
+    // Actualizar las PKs una vez más después de procesar todo el script
+    newColumns.forEach((column) => {
+      if (pkColumns.includes(column.name)) {
+        column.isPrimaryKey = true;
+        column.isNullable = false;
+      }
+    });
+
+    // Debug log para verificar columnas y PKs detectadas
+    console.log('PKs detectadas:', pkColumns);
+    console.log('Columnas cargadas:', newColumns);
 
     setColumns(newColumns);
     setAlertConfig({
@@ -1529,7 +1575,7 @@ export default function Home() {
                           onClick={() => requestSort('createdAt')}
                         >
                           <div className="flex items-center gap-2">
-                            Fecha de Creación
+                            Fecha de Modificación
                             {sortConfig.key === 'createdAt' ? (
                               <span className="text-primary">
                                 {sortConfig.direction === 'asc' ? (
@@ -1618,6 +1664,22 @@ export default function Home() {
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <p>Copiar al Portapapeles</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => copyWithFormat(script)}
+                                    >
+                                      <FileSpreadsheet className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Copiar con Formato</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
