@@ -127,29 +127,36 @@ export async function PUT(request: Request) {
     // Get existing scripts
     const existingScripts = (await redis.get<Script[]>(SCRIPTS_KEY)) || [];
 
-    // Find the script to update
-    const scriptIndex = existingScripts.findIndex((s) => s.id === id);
+    // Eliminar todos los scripts con el mismo nombre de tabla, excepto el que estamos editando
+    const filteredScripts = existingScripts.filter(
+      (s) => s.tableName !== tableName || s.id === id
+    );
 
-    if (scriptIndex === -1) {
-      return NextResponse.json(
-        { success: false, error: 'Script no encontrado' },
-        { status: 404 }
-      );
-    }
+    // Obtener la fecha actual
+    const currentDate = new Date().toISOString();
 
     // Create the updated script
     const updatedScript: Script = {
-      ...existingScripts[scriptIndex],
+      id,
       script,
       tableName,
+      createdAt: currentDate,
       isAlterTable: isAlterTable || false,
     };
 
-    // Update the script in the existing array
-    existingScripts[scriptIndex] = updatedScript;
+    // Encontrar el índice del script que estamos editando
+    const scriptIndex = filteredScripts.findIndex((s) => s.id === id);
+
+    if (scriptIndex === -1) {
+      // Si no existe, lo agregamos al final
+      filteredScripts.push(updatedScript);
+    } else {
+      // Si existe, lo actualizamos en su posición
+      filteredScripts[scriptIndex] = updatedScript;
+    }
 
     // Save the updated scripts back to Redis
-    const result = await redis.set(SCRIPTS_KEY, existingScripts);
+    const result = await redis.set(SCRIPTS_KEY, filteredScripts);
 
     if (result !== 'OK') {
       throw new Error('Failed to update Redis');
