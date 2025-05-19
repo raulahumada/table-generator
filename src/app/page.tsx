@@ -45,6 +45,7 @@ import {
   Trash2,
   ArrowUpDown,
   FileSpreadsheet,
+  X,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -1082,24 +1083,25 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen p-4 bg-background">
-      <div className="w-full max-w-[1800px] mx-auto">
-        <h1 className="text-4xl font-bold mb-8 text-foreground tracking-tight animate-fade-in">
+    <div className="min-h-screen bg-zinc-900 text-zinc-300">
+      <div className="w-full max-w-[1800px] mx-auto px-6 py-8">
+        <h1 className="text-2xl font-normal mb-8 tracking-tight text-zinc-100 border-b border-zinc-800 pb-4">
           Generador de Scripts SQL para Oracle
         </h1>
 
-        <Card className="mb-8 shadow-xl border-border/50 bg-card/95 animate-scale-in">
-          <CardHeader className="bg-muted/30 border-b border-border/50 px-8 py-6">
-            <CardTitle className="text-2xl text-foreground font-semibold">
-              Información de la Tabla
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-8">
-            <div className="grid gap-8 w-full">
-              <div className="grid gap-3 animate-slide-in">
+        <div className="space-y-10">
+          <div className="space-y-6 bg-zinc-900 border border-zinc-800 p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-normal text-zinc-100">
+                Información de la Tabla
+              </h2>
+            </div>
+
+            <div className="grid gap-6 w-full">
+              <div className="grid gap-3">
                 <Label
                   htmlFor="tableName"
-                  className="text-base font-medium text-foreground"
+                  className="text-base font-normal text-zinc-400"
                 >
                   Nombre de la Tabla
                 </Label>
@@ -1109,20 +1111,20 @@ export default function Home() {
                     value={tableName}
                     onChange={(e) => setTableName(e.target.value)}
                     placeholder="nombre_tabla"
-                    className="w-full bg-muted/50 border-border/50 h-12 text-lg px-4 focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                    className="w-full bg-zinc-800 border-zinc-700 h-12 text-lg px-4 focus:ring-1 focus:ring-zinc-600 transition-all duration-200 rounded-none text-zinc-200"
                   />
-                  <div className="flex items-center gap-2 bg-yellow-50/80 dark:bg-yellow-950/20 p-3 rounded-lg border border-yellow-200 dark:border-yellow-800/30 transition-all duration-200 hover:bg-yellow-50 dark:hover:bg-yellow-950/30">
+                  <div className="flex items-center gap-2 text-zinc-400 bg-zinc-800/50 px-4 py-3 border border-zinc-700">
                     <Checkbox
                       id="isAlterTable"
                       checked={isAlterTable}
                       onCheckedChange={(checked) =>
                         setIsAlterTable(checked as boolean)
                       }
-                      className="w-5 h-5 data-[state=checked]:bg-yellow-600 data-[state=checked]:border-yellow-600"
+                      className="w-5 h-5 rounded-none data-[state=checked]:bg-zinc-600 data-[state=checked]:border-zinc-600"
                     />
                     <Label
                       htmlFor="isAlterTable"
-                      className="text-base font-medium text-yellow-800 dark:text-yellow-200 whitespace-nowrap cursor-pointer"
+                      className="text-base font-normal whitespace-nowrap cursor-pointer"
                     >
                       Generar como ALTER TABLE
                     </Label>
@@ -1131,9 +1133,9 @@ export default function Home() {
               </div>
 
               {isAlterTable && (
-                <div className="bg-yellow-50/80 dark:bg-yellow-950/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800/30">
-                  <p className="text-yellow-800 dark:text-yellow-200 flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                <div className="bg-amber-950/30 p-4 border border-amber-900/30">
+                  <p className="text-amber-300 flex items-center gap-2 text-sm">
+                    <AlertCircle className="h-4 w-4 text-amber-400" />
                     <span>
                       Los campos se agregarán usando comandos ALTER TABLE ADD
                     </span>
@@ -1141,13 +1143,10 @@ export default function Home() {
                 </div>
               )}
 
-              <div
-                className="grid gap-3 animate-slide-in"
-                style={{ animationDelay: '100ms' }}
-              >
+              <div className="grid gap-3">
                 <Label
                   htmlFor="tableComment"
-                  className="text-base font-medium text-foreground"
+                  className="text-base font-normal text-zinc-400"
                 >
                   Comentario General de la Tabla
                 </Label>
@@ -1156,58 +1155,79 @@ export default function Home() {
                   value={tableComment}
                   onChange={(e) => setTableComment(e.target.value)}
                   placeholder="Descripción general de la tabla y su propósito"
-                  className="w-full min-h-[140px] bg-muted/50 border-border/50 text-base p-4 resize-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                  className="w-full min-h-[140px] bg-zinc-800 border-zinc-700 text-base p-4 resize-none focus:ring-1 focus:ring-zinc-600 transition-all duration-200 rounded-none text-zinc-200"
                 />
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card
-          className="shadow-md animate-scale-in"
-          style={{ animationDelay: '200ms' }}
-        >
-          <CardHeader className="bg-muted/50">
-            <CardTitle className="text-xl">Columnas de la Tabla</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="rounded-md border overflow-x-auto w-full">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="w-[300px]">
-                      Nombre del Campo
-                    </TableHead>
-                    <TableHead className="w-[120px] text-center">
-                      Primary Key
-                    </TableHead>
-                    <TableHead className="w-[120px] text-center">
-                      Nulleable
-                    </TableHead>
-                    <TableHead className="w-[200px]">Tipo de Dato</TableHead>
-                    <TableHead className="w-[200px]">Constraint</TableHead>
-                    <TableHead className="w-[120px] text-center">
-                      Foreign Key
-                    </TableHead>
-                    <TableHead className="w-[250px]">
-                      Tabla Referencia
-                    </TableHead>
-                    <TableHead className="w-[400px]">
-                      Comentario del Campo
-                    </TableHead>
-                    <TableHead className="w-[120px] text-center">
+          <div className="space-y-6 bg-zinc-900 border border-zinc-800 p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-normal text-zinc-100">
+                Columnas de la Tabla
+              </h2>
+              <div className="flex gap-3">
+                <Button
+                  onClick={addColumn}
+                  variant="outline"
+                  className="border-zinc-700 hover:bg-zinc-800 text-zinc-300 rounded-none h-9"
+                >
+                  Agregar Columna
+                </Button>
+                <Button
+                  onClick={addKeyFields}
+                  variant="outline"
+                  className="border-zinc-700 hover:bg-zinc-800 text-zinc-300 rounded-none h-9"
+                >
+                  Agregar Campos Llave
+                </Button>
+                <Button
+                  onClick={addAuditFields}
+                  variant="outline"
+                  className="border-zinc-700 hover:bg-zinc-800 text-zinc-300 rounded-none h-9"
+                >
+                  Agregar Campos Auditoría
+                </Button>
+              </div>
+            </div>
+
+            <div className="w-full overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-zinc-800">
+                    <th className="text-left py-3 px-4 font-normal text-zinc-400">
+                      Nombre
+                    </th>
+                    <th className="text-center py-3 px-4 font-normal text-zinc-400">
+                      PK
+                    </th>
+                    <th className="text-center py-3 px-4 font-normal text-zinc-400">
+                      Nullable
+                    </th>
+                    <th className="text-left py-3 px-4 font-normal text-zinc-400">
+                      Tipo de Dato
+                    </th>
+                    <th className="text-left py-3 px-4 font-normal text-zinc-400">
+                      Constraint
+                    </th>
+                    <th className="text-center py-3 px-4 font-normal text-zinc-400">
+                      FK
+                    </th>
+                    <th className="text-left py-3 px-4 font-normal text-zinc-400">
+                      Tabla Ref.
+                    </th>
+                    <th className="text-left py-3 px-4 font-normal text-zinc-400">
+                      Comentario
+                    </th>
+                    <th className="text-center py-3 px-4 font-normal text-zinc-400">
                       Acciones
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
                   {columns.map((column, index) => (
-                    <TableRow
-                      key={index}
-                      className="hover:bg-muted/50 transition-all duration-200 animate-slide-in"
-                      style={{ animationDelay: `${index * 50}ms` }}
-                    >
-                      <TableCell>
+                    <tr key={index} className="border-b border-zinc-800">
+                      <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <Input
                             value={column.name}
@@ -1215,7 +1235,7 @@ export default function Home() {
                               updateColumn(index, 'name', e.target.value)
                             }
                             placeholder="nombre_campo"
-                            className="w-full transition-all duration-200"
+                            className="w-full bg-zinc-800 border-zinc-700 focus:ring-1 focus:ring-zinc-600 rounded-none text-zinc-200"
                           />
                           <div className="flex flex-col">
                             <Button
@@ -1223,7 +1243,7 @@ export default function Home() {
                               size="icon"
                               onClick={() => moveColumn(index, 'up')}
                               disabled={index === 0}
-                              className="h-8 w-8 transition-transform hover:scale-110"
+                              className="h-8 w-8 hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300"
                             >
                               <ArrowUp className="h-4 w-4" />
                             </Button>
@@ -1232,43 +1252,43 @@ export default function Home() {
                               size="icon"
                               onClick={() => moveColumn(index, 'down')}
                               disabled={index === columns.length - 1}
-                              className="h-8 w-8 transition-transform hover:scale-110"
+                              className="h-8 w-8 hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300"
                             >
                               <ArrowDown className="h-4 w-4" />
                             </Button>
                           </div>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-center">
+                      </td>
+                      <td className="text-center py-3 px-4">
                         <Checkbox
                           checked={column.isPrimaryKey}
                           onCheckedChange={(checked) =>
                             updateColumn(index, 'isPrimaryKey', checked)
                           }
-                          className="scale-125"
+                          className="rounded-none data-[state=checked]:bg-zinc-600 data-[state=checked]:border-zinc-600"
                         />
-                      </TableCell>
-                      <TableCell className="text-center">
+                      </td>
+                      <td className="text-center py-3 px-4">
                         <Checkbox
                           checked={column.isNullable}
                           onCheckedChange={(checked) =>
                             updateColumn(index, 'isNullable', checked)
                           }
                           disabled={column.isPrimaryKey}
-                          className="scale-125"
+                          className="rounded-none data-[state=checked]:bg-zinc-600 data-[state=checked]:border-zinc-600"
                         />
-                      </TableCell>
-                      <TableCell>
+                      </td>
+                      <td className="py-3 px-4">
                         <Select
                           value={column.dataType}
                           onValueChange={(value) =>
                             updateColumn(index, 'dataType', value)
                           }
                         >
-                          <SelectTrigger className="w-full">
+                          <SelectTrigger className="w-full bg-zinc-800 border-zinc-700 focus:ring-1 focus:ring-zinc-600 rounded-none text-zinc-200">
                             <SelectValue placeholder="Seleccionar" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="bg-zinc-800 border-zinc-700 rounded-none">
                             <SelectItem value="NUMBER">NUMBER</SelectItem>
                             <SelectItem value="NUMBER(5)">NUMBER(5)</SelectItem>
                             <SelectItem value="NUMBER(9,6)">
@@ -1286,7 +1306,6 @@ export default function Home() {
                             <SelectItem value="NUMBER(20)">
                               NUMBER(20)
                             </SelectItem>
-
                             <SelectItem value="VARCHAR2(255)">
                               VARCHAR2(255)
                             </SelectItem>
@@ -1302,27 +1321,27 @@ export default function Home() {
                             <SelectItem value="GENERIC">GENERIC</SelectItem>
                           </SelectContent>
                         </Select>
-                      </TableCell>
-                      <TableCell>
+                      </td>
+                      <td className="py-3 px-4">
                         <Input
                           value={column.constraint}
                           onChange={(e) =>
                             updateColumn(index, 'constraint', e.target.value)
                           }
                           placeholder="UNIQUE, CHECK, etc."
-                          className="w-full"
+                          className="w-full bg-zinc-800 border-zinc-700 focus:ring-1 focus:ring-zinc-600 rounded-none text-zinc-200"
                         />
-                      </TableCell>
-                      <TableCell className="text-center">
+                      </td>
+                      <td className="text-center py-3 px-4">
                         <Checkbox
                           checked={column.hasForeignKey}
                           onCheckedChange={(checked) =>
                             updateColumn(index, 'hasForeignKey', checked)
                           }
-                          className="scale-125"
+                          className="rounded-none data-[state=checked]:bg-zinc-600 data-[state=checked]:border-zinc-600"
                         />
-                      </TableCell>
-                      <TableCell>
+                      </td>
+                      <td className="py-3 px-4">
                         <Input
                           value={column.foreignTable}
                           onChange={(e) =>
@@ -1330,75 +1349,40 @@ export default function Home() {
                           }
                           placeholder="nombre_tabla_referencia"
                           disabled={!column.hasForeignKey}
-                          className="w-full"
+                          className="w-full bg-zinc-800 border-zinc-700 focus:ring-1 focus:ring-zinc-600 rounded-none text-zinc-200"
                         />
-                      </TableCell>
-                      <TableCell>
+                      </td>
+                      <td className="py-3 px-4">
                         <Input
                           value={column.comment}
                           onChange={(e) =>
                             updateColumn(index, 'comment', e.target.value)
                           }
                           placeholder="Descripción del campo"
-                          className="w-full"
+                          className="w-full bg-zinc-800 border-zinc-700 focus:ring-1 focus:ring-zinc-600 rounded-none text-zinc-200"
                         />
-                      </TableCell>
-                      <TableCell className="text-center">
+                      </td>
+                      <td className="text-center py-3 px-4">
                         <Button
-                          variant="destructive"
+                          variant="ghost"
                           size="sm"
                           onClick={() => deleteColumn(index)}
                           disabled={columns.length === 1}
-                          className="transition-all duration-200 hover:scale-105"
+                          className="h-8 w-8 p-0 hover:bg-red-900/20 hover:text-red-400 text-zinc-500"
                         >
-                          Eliminar
+                          <Trash2 className="h-4 w-4" />
                         </Button>
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   ))}
-                </TableBody>
-              </Table>
+                </tbody>
+              </table>
             </div>
 
-            <div className="mt-6 flex gap-4 flex-wrap">
-              <Button onClick={addColumn} variant="outline">
-                Agregar Columna
-              </Button>
-              <Button onClick={addKeyFields} variant="outline">
-                Agregar Campos Llave
-              </Button>
-              <Button onClick={addAuditFields} variant="outline">
-                Agregar Campos Auditoría
-              </Button>
-
-              <Button onClick={generateInsertProcedure} variant="secondary">
-                Generar Procedimiento INSERT
-              </Button>
-              <Button onClick={generateUpdateProcedure} variant="secondary">
-                Generar Procedimiento UPDATE
-              </Button>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="secondary"
-                      disabled={true}
-                      className="cursor-not-allowed transition-all duration-200 group"
-                    >
-                      <Settings className="mr-2 h-4 w-4 group-hover:animate-spin" />
-                      Generar Comentarios con IA
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Funcionalidad en desarrollo</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+            <div className="pt-6 border-t border-zinc-800 mt-8 flex gap-4 flex-wrap">
               <Button
                 onClick={saveScript}
-                variant="default"
-                className="bg-blue-500 hover:bg-blue-600 text-white"
+                className="bg-zinc-700 hover:bg-zinc-600 text-zinc-100 rounded-none h-9"
               >
                 <FileCode className="mr-2 h-4 w-4" />
                 {editingScriptId
@@ -1406,7 +1390,21 @@ export default function Home() {
                   : 'Generar Script de Tabla'}
               </Button>
               <Button
-                className="bg-teal-500 hover:bg-teal-600 text-white"
+                onClick={generateInsertProcedure}
+                variant="outline"
+                className="border-zinc-700 hover:bg-zinc-800 text-zinc-300 rounded-none h-9"
+              >
+                Generar Procedimiento INSERT
+              </Button>
+              <Button
+                onClick={generateUpdateProcedure}
+                variant="outline"
+                className="border-zinc-700 hover:bg-zinc-800 text-zinc-300 rounded-none h-9"
+              >
+                Generar Procedimiento UPDATE
+              </Button>
+              <Button
+                className="bg-zinc-700 hover:bg-zinc-600 text-zinc-100 rounded-none h-9"
                 onClick={async () => {
                   if (!previewScript || !tableName) {
                     setAlertConfig({
@@ -1494,23 +1492,21 @@ export default function Home() {
                 )}
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Lista de scripts guardados */}
-        {savedScripts.length > 0 && (
-          <Card className="mt-8 shadow-md">
-            <CardHeader className="bg-muted/50">
-              <CardTitle className="text-xl">Scripts Guardados</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <div className="flex items-center gap-4 mb-4">
+          {/* Lista de scripts guardados */}
+          {savedScripts.length > 0 && (
+            <div className="bg-zinc-900 border border-zinc-800">
+              <div className="border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
+                <h2 className="text-lg font-normal text-zinc-100">
+                  Scripts Guardados
+                </h2>
+                <div className="flex gap-2">
                   <Input
-                    placeholder="Buscar por nombre de tabla..."
+                    placeholder="Buscar..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="max-w-sm"
+                    className="bg-zinc-800 border-zinc-700 w-[180px] rounded-none text-zinc-200 h-8 text-xs"
                   />
                   <Select
                     value={typeFilter}
@@ -1518,267 +1514,200 @@ export default function Home() {
                       setTypeFilter(value)
                     }
                   >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Filtrar por tipo" />
+                    <SelectTrigger className="bg-zinc-800 border-zinc-700 focus:ring-1 focus:ring-zinc-600 rounded-none text-zinc-200 w-[120px] h-8 text-xs">
+                      <SelectValue placeholder="Filtrar" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos los tipos</SelectItem>
-                      <SelectItem value="create">CREATE TABLE</SelectItem>
-                      <SelectItem value="alter">ALTER TABLE</SelectItem>
+                    <SelectContent className="bg-zinc-800 border-zinc-700 rounded-none text-xs">
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="create">CREATE</SelectItem>
+                      <SelectItem value="alter">ALTER</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead
-                          className="cursor-pointer hover:bg-muted/50 transition-colors"
-                          onClick={() => requestSort('tableName')}
-                        >
-                          <div className="flex items-center gap-2">
-                            Nombre de Tabla
-                            {sortConfig.key === 'tableName' ? (
-                              <span className="text-primary">
-                                {sortConfig.direction === 'asc' ? (
-                                  <ArrowUp className="h-4 w-4" />
-                                ) : (
-                                  <ArrowDown className="h-4 w-4" />
-                                )}
-                              </span>
-                            ) : (
-                              <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </div>
-                        </TableHead>
-                        <TableHead
-                          className="cursor-pointer hover:bg-muted/50 transition-colors"
-                          onClick={() => requestSort('type')}
-                        >
-                          <div className="flex items-center gap-2">
-                            Tipo
-                            {sortConfig.key === 'type' ? (
-                              <span className="text-primary">
-                                {sortConfig.direction === 'asc' ? (
-                                  <ArrowUp className="h-4 w-4" />
-                                ) : (
-                                  <ArrowDown className="h-4 w-4" />
-                                )}
-                              </span>
-                            ) : (
-                              <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </div>
-                        </TableHead>
-                        <TableHead
-                          className="cursor-pointer hover:bg-muted/50 transition-colors"
-                          onClick={() => requestSort('createdAt')}
-                        >
-                          <div className="flex items-center gap-2">
-                            Fecha de Modificación
-                            {sortConfig.key === 'createdAt' ? (
-                              <span className="text-primary">
-                                {sortConfig.direction === 'asc' ? (
-                                  <ArrowUp className="h-4 w-4" />
-                                ) : (
-                                  <ArrowDown className="h-4 w-4" />
-                                )}
-                              </span>
-                            ) : (
-                              <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </div>
-                        </TableHead>
-                        <TableHead className="text-right">Acciones</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {sortedScripts.map((script) => (
-                        <TableRow key={script.id}>
-                          <TableCell className="font-medium">
-                            {script.tableName}
-                          </TableCell>
-                          <TableCell>
-                            {script.isAlterTable ? (
-                              <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-800/30">
-                                ALTER TABLE
-                              </span>
-                            ) : (
-                              <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800/30">
-                                CREATE TABLE
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {new Date(script.createdAt).toLocaleString()}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => {
-                                        setPreviewScript(script.script);
-                                        setPreviewTitle(
-                                          `Script de ${script.tableName}`
-                                        );
-                                        setShowPreview(true);
-                                      }}
-                                    >
-                                      <FileCode className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Ver Script</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => {
-                                        navigator.clipboard.writeText(
-                                          script.script
-                                        );
-                                        setAlertConfig({
-                                          type: 'success',
-                                          title: 'Éxito',
-                                          description:
-                                            'Script copiado al portapapeles',
-                                        });
-                                        setShowAlert(true);
-                                        setTimeout(
-                                          () => setShowAlert(false),
-                                          3000
-                                        );
-                                      }}
-                                    >
-                                      <ClipboardCopy className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Copiar al Portapapeles</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => copyWithFormat(script)}
-                                    >
-                                      <FileSpreadsheet className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Copiar con Formato</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => loadScript(script)}
-                                    >
-                                      <Pencil className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Editar Script</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="destructive"
-                                      size="sm"
-                                      onClick={() => {
-                                        setScriptToDelete(script);
-                                        setShowDeleteConfirm(true);
-                                      }}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Eliminar Script</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
 
-        <Dialog open={showPreview} onOpenChange={setShowPreview}>
-          <DialogContent className="max-w-[95vw] w-full max-h-[90vh] min-w-[800px]">
-            <DialogHeader className="pb-4">
-              <DialogTitle className="text-xl flex items-center gap-2">
-                <FileCode className="h-5 w-5" />
-                {previewTitle}
-              </DialogTitle>
-              <DialogDescription>
-                Revisa el script generado antes de copiarlo
-              </DialogDescription>
-            </DialogHeader>
-            <div className="relative flex-1 min-h-[60vh]">
-              <div className="absolute inset-0 p-6">
-                <div className="relative h-full bg-muted rounded-lg">
-                  <pre className="absolute inset-0 p-6 overflow-auto font-mono text-sm whitespace-pre">
-                    {previewScript}
-                  </pre>
-                  <div className="absolute top-4 right-4 z-10 flex gap-2">
-                    <Button
-                      onClick={copyToClipboard}
-                      variant="secondary"
-                      className="flex items-center gap-2 shadow-lg hover:shadow-xl transition-shadow"
-                    >
-                      <ClipboardCopy className="h-4 w-4" />
-                      Copiar Script
-                    </Button>
+              <div>
+                <div className="flex items-center border-b border-zinc-800 bg-zinc-800/30">
+                  <div
+                    className="w-[300px] py-2 px-4 flex items-center gap-1 cursor-pointer hover:bg-zinc-800/40"
+                    onClick={() => requestSort('tableName')}
+                  >
+                    <span className="text-zinc-400 font-normal text-xs">
+                      Nombre de Tabla
+                    </span>
+                    {sortConfig.key === 'tableName' && (
+                      <span>
+                        {sortConfig.direction === 'asc' ? (
+                          <ArrowUp className="h-3 w-3 text-zinc-400" />
+                        ) : (
+                          <ArrowDown className="h-3 w-3 text-zinc-400" />
+                        )}
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    className="w-[100px] py-2 px-4 flex items-center gap-1 cursor-pointer hover:bg-zinc-800/40"
+                    onClick={() => requestSort('type')}
+                  >
+                    <span className="text-zinc-400 font-normal text-xs">
+                      Tipo
+                    </span>
+                    {sortConfig.key === 'type' && (
+                      <span>
+                        {sortConfig.direction === 'asc' ? (
+                          <ArrowUp className="h-3 w-3 text-zinc-400" />
+                        ) : (
+                          <ArrowDown className="h-3 w-3 text-zinc-400" />
+                        )}
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    className="w-[180px] py-2 px-4 flex items-center gap-1 cursor-pointer hover:bg-zinc-800/40"
+                    onClick={() => requestSort('createdAt')}
+                  >
+                    <span className="text-zinc-400 font-normal text-xs">
+                      Modificación
+                    </span>
+                    {sortConfig.key === 'createdAt' && (
+                      <span>
+                        {sortConfig.direction === 'asc' ? (
+                          <ArrowUp className="h-3 w-3 text-zinc-400" />
+                        ) : (
+                          <ArrowDown className="h-3 w-3 text-zinc-400" />
+                        )}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 py-2 px-4 text-right">
+                    <span className="text-zinc-400 font-normal text-xs">
+                      Acciones
+                    </span>
                   </div>
                 </div>
+
+                {sortedScripts.map((script, index) => (
+                  <div
+                    key={script.id}
+                    className="flex items-center border-b border-zinc-800 hover:bg-zinc-800/40"
+                  >
+                    <div className="w-[300px] py-2 px-4 flex items-center">
+                      <span className="text-zinc-200 text-sm truncate">
+                        {script.tableName}
+                      </span>
+                    </div>
+                    <div className="w-[100px] py-2 px-4">
+                      <span
+                        className={`text-xs ${
+                          script.isAlterTable
+                            ? 'text-amber-500'
+                            : 'text-blue-500'
+                        }`}
+                      >
+                        {script.isAlterTable ? 'ALTER' : 'CREATE'}
+                      </span>
+                    </div>
+                    <div className="w-[180px] py-2 px-4">
+                      <span className="text-zinc-500 text-xs">
+                        {new Date(script.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex-1 py-2 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setPreviewScript(script.script);
+                            setPreviewTitle(`Script de ${script.tableName}`);
+                            setShowPreview(true);
+                          }}
+                          className="h-7 w-7 p-0 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
+                          title="Ver script"
+                        >
+                          <FileCode className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(script.script);
+                            setAlertConfig({
+                              type: 'success',
+                              title: 'Éxito',
+                              description: 'Script copiado al portapapeles',
+                            });
+                            setShowAlert(true);
+                            setTimeout(() => setShowAlert(false), 3000);
+                          }}
+                          className="h-7 w-7 p-0 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
+                          title="Copiar al portapapeles"
+                        >
+                          <ClipboardCopy className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyWithFormat(script)}
+                          className="h-7 w-7 p-0 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
+                          title="Copiar con formato"
+                        >
+                          <FileSpreadsheet className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => loadScript(script)}
+                          className="h-7 w-7 p-0 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
+                          title="Editar script"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setScriptToDelete(script);
+                            setShowDeleteConfirm(true);
+                          }}
+                          className="h-7 w-7 p-0 text-zinc-500 hover:text-red-400 hover:bg-zinc-800"
+                          title="Eliminar script"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
+          )}
+        </div>
+      </div>
 
-        <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Confirmar Eliminación</DialogTitle>
-              <DialogDescription>
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="sm:max-w-[425px] bg-zinc-900 border-zinc-800 rounded-none p-0">
+          <div className="flex flex-col">
+            <div className="border-b border-zinc-800 px-4 py-3">
+              <DialogTitle className="text-base font-normal text-zinc-300">
+                Confirmar Eliminación
+              </DialogTitle>
+              <DialogDescription className="text-zinc-500 mt-2">
                 ¿Estás seguro que deseas eliminar el script de la tabla{' '}
-                {scriptToDelete?.tableName}? Esta acción no se puede deshacer.
+                <span className="text-zinc-300">
+                  {scriptToDelete?.tableName}
+                </span>
+                ? Esta acción no se puede deshacer.
               </DialogDescription>
-            </DialogHeader>
-            <div className="flex justify-end gap-4 mt-4">
+            </div>
+            <div className="px-4 py-3 flex justify-end gap-3">
               <Button
                 variant="outline"
                 onClick={() => {
                   setShowDeleteConfirm(false);
                   setScriptToDelete(null);
                 }}
+                className="border-zinc-700 hover:bg-zinc-800 text-zinc-300 rounded-none"
               >
                 Cancelar
               </Button>
@@ -1832,67 +1761,82 @@ export default function Home() {
                     setScriptToDelete(null);
                   }
                 }}
+                className="bg-red-700 hover:bg-red-600 rounded-none"
               >
                 Eliminar
               </Button>
             </div>
-          </DialogContent>
-        </Dialog>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-        <Dialog open={showEasterEgg} onOpenChange={setShowEasterEgg}>
-          <DialogContent className="max-w-[800px] w-full">
-            <DialogHeader>
-              <DialogTitle className="text-xl">
-                ¡Easter Egg Encontrado! 🎉
-              </DialogTitle>
-            </DialogHeader>
-            <div className="relative" style={{ paddingBottom: '56.25%' }}>
-              <iframe
-                className="absolute top-0 left-0 w-full h-full"
-                src="https://www.youtube.com/embed/R26BSXAbRiY?autoplay=1"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              ></iframe>
+      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <DialogContent className="max-w-[95vw] max-h-[90vh] min-w-[800px] bg-zinc-900 border-zinc-800 rounded-none p-0 flex flex-col h-[80vh]">
+          <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3 shrink-0">
+            <DialogTitle className="text-base font-normal flex items-center gap-2 text-zinc-300">
+              <FileCode className="h-4 w-4 text-zinc-400" />
+              {previewTitle}
+            </DialogTitle>
+            <Button
+              onClick={() => setShowPreview(false)}
+              variant="ghost"
+              className="h-6 w-6 p-0 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-full"
+            >
+              <span className="sr-only">Cerrar</span>
+            </Button>
+          </div>
+
+          <div className="overflow-auto flex-grow p-4 relative">
+            <pre className="font-mono text-sm text-zinc-300 whitespace-pre overflow-x-auto w-full h-full">
+              {previewScript}
+            </pre>
+          </div>
+
+          <div className="border-t border-zinc-800 px-4 py-3 flex justify-between items-center shrink-0">
+            <div className="text-xs text-zinc-500">
+              {new Date().toLocaleString()}
             </div>
-          </DialogContent>
-        </Dialog>
+            <Button
+              onClick={copyToClipboard}
+              variant="ghost"
+              className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded-sm h-7 text-xs"
+            >
+              <ClipboardCopy className="h-3.5 w-3.5 mr-2" />
+              Copiar Script
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-        {showAlert && (
-          <div className="fixed bottom-4 right-4 z-50">
-            <Alert
+      {showAlert && (
+        <div className="fixed bottom-4 right-4 z-50">
+          <Alert className="border-l-4 border-l-zinc-600 bg-zinc-900 shadow-md border border-zinc-800">
+            {alertConfig.type === 'success' ? (
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+            ) : (
+              <AlertCircle className="h-4 w-4 text-red-500" />
+            )}
+            <AlertTitle
               className={
                 alertConfig.type === 'success'
-                  ? 'bg-green-50 border-green-200'
-                  : 'bg-red-50 border-red-200'
+                  ? 'text-green-400 font-normal'
+                  : 'text-red-400 font-normal'
               }
             >
-              {alertConfig.type === 'success' ? (
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-              ) : (
-                <AlertCircle className="h-4 w-4 text-red-600" />
-              )}
-              <AlertTitle
-                className={
-                  alertConfig.type === 'success'
-                    ? 'text-green-800'
-                    : 'text-red-800'
-                }
-              >
-                {alertConfig.title}
-              </AlertTitle>
-              <AlertDescription
-                className={
-                  alertConfig.type === 'success'
-                    ? 'text-green-700'
-                    : 'text-red-700'
-                }
-              >
-                {alertConfig.description}
-              </AlertDescription>
-            </Alert>
-          </div>
-        )}
-      </div>
+              {alertConfig.title}
+            </AlertTitle>
+            <AlertDescription
+              className={
+                alertConfig.type === 'success'
+                  ? 'text-green-500'
+                  : 'text-red-500'
+              }
+            >
+              {alertConfig.description}
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
     </div>
   );
 }
