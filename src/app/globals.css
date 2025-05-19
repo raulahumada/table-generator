@@ -76,6 +76,7 @@
   --sidebar-accent-foreground: oklch(0.21 0.034 264.665);
   --sidebar-border: oklch(0.928 0.006 264.531);
   --sidebar-ring: oklch(0.707 0.022 261.325);
+  --transition-speed: 0.3s;
 }
 
 .dark {
@@ -118,5 +119,174 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Animaciones adicionales para elementos específicos */
+
+/* Animación para la tarjeta que se está editando */
+.editing-card {
+  animation: pulseHighlight 2s infinite ease-in-out;
+}
+
+@keyframes pulseHighlight {
+  0% {
+    box-shadow: 0 0 0 0 rgba(82, 82, 255, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(82, 82, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(82, 82, 255, 0);
+  }
+}
+
+/* Animación para las filas de la tabla */
+tr:hover td {
+  transition: background-color 0.15s ease;
+}
+
+/* Animación para el enfoque en los campos de formulario */
+input:focus,
+textarea:focus,
+select:focus {
+  animation: focusPulse 0.5s ease-out;
+}
+
+@keyframes focusPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.2);
+  }
+  100% {
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0);
+  }
+}
+
+/* Animación tipo typewriter para textos fijos */
+.typewriter {
+  overflow: hidden;
+  white-space: nowrap;
+  animation: typing 3.5s steps(40, end);
+}
+
+@keyframes typing {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+/* Animación para el botón de acción principal */
+.action-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.action-button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+}
+
+.action-button:hover::after {
+  transform: translateX(0);
+}
+
+/* Animación de carga para botones */
+.loading-button {
+  position: relative;
+}
+
+.loading-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(to right, transparent, #3b82f6, transparent);
+  animation: loadingLine 1.5s infinite ease-in-out;
+}
+
+@keyframes loadingLine {
+  0% {
+    width: 0;
+    left: 0;
+  }
+  50% {
+    width: 100%;
+    left: 0;
+  }
+  100% {
+    width: 0;
+    left: 100%;
+  }
+}
+
+/* Animación suave para los labels de los formularios */
+label {
+  transition: transform 0.2s, color 0.2s;
+}
+
+input:focus + label,
+textarea:focus + label,
+select:focus + label {
+  transform: translateY(-5px);
+  color: var(--primary);
+}
+
+/* Reforzar las transiciones para todos los elementos */
+html.theme-transitioning,
+html.theme-transitioning * {
+  transition-property: color, background-color, border-color,
+    text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter,
+    backdrop-filter;
+  transition-duration: 0.3s;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-delay: 0s;
+}
+
+/* Asegurarse de que todos los elementos tengan transición */
+button,
+input,
+select,
+textarea,
+tr,
+td,
+th,
+div,
+span,
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+pre,
+code {
+  transition: color 0.2s ease, background-color 0.2s ease,
+    border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Estilos específicos para el selector de tema */
+.theme-toggle {
+  animation: rotate 0.5s forwards;
+}
+
+@keyframes rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
   }
 }

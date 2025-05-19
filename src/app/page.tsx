@@ -54,6 +54,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import React from 'react';
 
 interface Column {
@@ -227,6 +228,18 @@ export default function Home() {
         comment: '',
       },
     ]);
+
+    // Animación para el nuevo elemento agregado
+    setTimeout(() => {
+      const rows = document.querySelectorAll('tbody tr');
+      if (rows.length > 0) {
+        const lastRow = rows[rows.length - 1];
+        lastRow.classList.add('slide-in');
+        setTimeout(() => {
+          lastRow.classList.remove('slide-in');
+        }, 500);
+      }
+    }, 10);
   };
 
   const updateColumn = (index: number, field: keyof Column, value: any) => {
@@ -715,6 +728,15 @@ export default function Home() {
   };
 
   const copyToClipboard = () => {
+    // Agregar animación al botón de copiar
+    const copyButton = document.querySelector('#copy-button');
+    if (copyButton) {
+      copyButton.classList.add('scale-in');
+      setTimeout(() => {
+        copyButton.classList.remove('scale-in');
+      }, 300);
+    }
+
     navigator.clipboard
       .writeText(previewScript)
       .then(() => {
@@ -1083,16 +1105,23 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-900 text-zinc-300">
+    <div className="min-h-screen bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-300 transition-colors duration-300">
       <div className="w-full max-w-[1800px] mx-auto px-6 py-8">
-        <h1 className="text-2xl font-normal mb-8 tracking-tight text-zinc-100 border-b border-zinc-800 pb-4">
-          Generador de Scripts SQL para Oracle
-        </h1>
+        <div className="flex justify-between items-center mb-8 slide-in">
+          <h1 className="text-2xl font-normal tracking-tight text-zinc-800 dark:text-zinc-100 pb-4 typewriter">
+            Generador de Scripts SQL para Oracle
+          </h1>
+          <ThemeToggle />
+        </div>
 
         <div className="space-y-10">
-          <div className="space-y-6 bg-zinc-900 border border-zinc-800 p-6">
+          <div
+            className={`space-y-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 scale-in ${
+              editingScriptId ? 'editing-card' : ''
+            }`}
+          >
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-normal text-zinc-100">
+              <h2 className="text-xl font-normal text-zinc-800 dark:text-zinc-100">
                 Información de la Tabla
               </h2>
             </div>
@@ -1101,7 +1130,7 @@ export default function Home() {
               <div className="grid gap-3">
                 <Label
                   htmlFor="tableName"
-                  className="text-base font-normal text-zinc-400"
+                  className="text-base font-normal text-zinc-600 dark:text-zinc-400"
                 >
                   Nombre de la Tabla
                 </Label>
@@ -1111,16 +1140,16 @@ export default function Home() {
                     value={tableName}
                     onChange={(e) => setTableName(e.target.value)}
                     placeholder="nombre_tabla"
-                    className="w-full bg-zinc-800 border-zinc-700 h-12 text-lg px-4 focus:ring-1 focus:ring-zinc-600 transition-all duration-200 rounded-none text-zinc-200"
+                    className="w-full bg-gray-100 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 h-12 text-lg px-4 focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition-all duration-200 rounded-none text-zinc-700 dark:text-zinc-200"
                   />
-                  <div className="flex items-center gap-2 text-zinc-400 bg-zinc-800/50 px-4 py-3 border border-zinc-700">
+                  <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 bg-gray-50 dark:bg-zinc-800/50 px-4 py-3 border border-gray-200 dark:border-zinc-700">
                     <Checkbox
                       id="isAlterTable"
                       checked={isAlterTable}
                       onCheckedChange={(checked) =>
                         setIsAlterTable(checked as boolean)
                       }
-                      className="w-5 h-5 rounded-none data-[state=checked]:bg-zinc-600 data-[state=checked]:border-zinc-600"
+                      className="w-5 h-5 rounded-none bg-gray-100 dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 data-[state=checked]:bg-zinc-500 dark:data-[state=checked]:bg-zinc-600 data-[state=checked]:border-zinc-500 dark:data-[state=checked]:border-zinc-600"
                     />
                     <Label
                       htmlFor="isAlterTable"
@@ -1133,9 +1162,9 @@ export default function Home() {
               </div>
 
               {isAlterTable && (
-                <div className="bg-amber-950/30 p-4 border border-amber-900/30">
-                  <p className="text-amber-300 flex items-center gap-2 text-sm">
-                    <AlertCircle className="h-4 w-4 text-amber-400" />
+                <div className="bg-zinc-100 dark:bg-zinc-800/50 p-4 border border-zinc-200 dark:border-zinc-700/50">
+                  <p className="text-zinc-700 dark:text-zinc-400 flex items-center gap-2 text-sm">
+                    <AlertCircle className="h-4 w-4 text-zinc-600 dark:text-zinc-500" />
                     <span>
                       Los campos se agregarán usando comandos ALTER TABLE ADD
                     </span>
@@ -1155,36 +1184,36 @@ export default function Home() {
                   value={tableComment}
                   onChange={(e) => setTableComment(e.target.value)}
                   placeholder="Descripción general de la tabla y su propósito"
-                  className="w-full min-h-[140px] bg-zinc-800 border-zinc-700 text-base p-4 resize-none focus:ring-1 focus:ring-zinc-600 transition-all duration-200 rounded-none text-zinc-200"
+                  className="w-full min-h-[140px] bg-gray-100 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-base p-4 resize-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition-all duration-200 rounded-none text-zinc-700 dark:text-zinc-200"
                 />
               </div>
             </div>
           </div>
 
-          <div className="space-y-6 bg-zinc-900 border border-zinc-800 p-6">
+          <div className="space-y-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 scale-in">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-normal text-zinc-100">
+              <h2 className="text-xl font-normal text-zinc-800 dark:text-zinc-100">
                 Columnas de la Tabla
               </h2>
               <div className="flex gap-3">
                 <Button
                   onClick={addColumn}
                   variant="outline"
-                  className="border-zinc-700 hover:bg-zinc-800 text-zinc-300 rounded-none h-9"
+                  className="border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-none h-9 transition-all duration-200"
                 >
                   Agregar Columna
                 </Button>
                 <Button
                   onClick={addKeyFields}
                   variant="outline"
-                  className="border-zinc-700 hover:bg-zinc-800 text-zinc-300 rounded-none h-9"
+                  className="border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-none h-9 transition-all duration-200"
                 >
                   Agregar Campos Llave
                 </Button>
                 <Button
                   onClick={addAuditFields}
                   variant="outline"
-                  className="border-zinc-700 hover:bg-zinc-800 text-zinc-300 rounded-none h-9"
+                  className="border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-none h-9 transition-all duration-200"
                 >
                   Agregar Campos Auditoría
                 </Button>
@@ -1194,39 +1223,42 @@ export default function Home() {
             <div className="w-full overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="border-b border-zinc-800">
-                    <th className="text-left py-3 px-4 font-normal text-zinc-400">
+                  <tr className="border-b border-zinc-200 dark:border-zinc-800">
+                    <th className="text-left py-3 px-4 font-normal text-zinc-600 dark:text-zinc-400">
                       Nombre
                     </th>
-                    <th className="text-center py-3 px-4 font-normal text-zinc-400">
+                    <th className="text-center py-3 px-4 font-normal text-zinc-600 dark:text-zinc-400">
                       PK
                     </th>
-                    <th className="text-center py-3 px-4 font-normal text-zinc-400">
+                    <th className="text-center py-3 px-4 font-normal text-zinc-600 dark:text-zinc-400">
                       Nullable
                     </th>
-                    <th className="text-left py-3 px-4 font-normal text-zinc-400">
+                    <th className="text-left py-3 px-4 font-normal text-zinc-600 dark:text-zinc-400">
                       Tipo de Dato
                     </th>
-                    <th className="text-left py-3 px-4 font-normal text-zinc-400">
+                    <th className="text-left py-3 px-4 font-normal text-zinc-600 dark:text-zinc-400">
                       Constraint
                     </th>
-                    <th className="text-center py-3 px-4 font-normal text-zinc-400">
+                    <th className="text-center py-3 px-4 font-normal text-zinc-600 dark:text-zinc-400">
                       FK
                     </th>
-                    <th className="text-left py-3 px-4 font-normal text-zinc-400">
+                    <th className="text-left py-3 px-4 font-normal text-zinc-600 dark:text-zinc-400">
                       Tabla Ref.
                     </th>
-                    <th className="text-left py-3 px-4 font-normal text-zinc-400">
+                    <th className="text-left py-3 px-4 font-normal text-zinc-600 dark:text-zinc-400">
                       Comentario
                     </th>
-                    <th className="text-center py-3 px-4 font-normal text-zinc-400">
+                    <th className="text-center py-3 px-4 font-normal text-zinc-600 dark:text-zinc-400">
                       Acciones
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {columns.map((column, index) => (
-                    <tr key={index} className="border-b border-zinc-800">
+                    <tr
+                      key={index}
+                      className="border-b border-zinc-200 dark:border-zinc-800 transition-all hover:bg-zinc-100 dark:hover:bg-zinc-800/40"
+                    >
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <Input
@@ -1235,7 +1267,7 @@ export default function Home() {
                               updateColumn(index, 'name', e.target.value)
                             }
                             placeholder="nombre_campo"
-                            className="w-full bg-zinc-800 border-zinc-700 focus:ring-1 focus:ring-zinc-600 rounded-none text-zinc-200"
+                            className="w-full bg-gray-100 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 rounded-none text-zinc-700 dark:text-zinc-200"
                           />
                           <div className="flex flex-col">
                             <Button
@@ -1243,7 +1275,7 @@ export default function Home() {
                               size="icon"
                               onClick={() => moveColumn(index, 'up')}
                               disabled={index === 0}
-                              className="h-8 w-8 hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300"
+                              className="h-8 w-8 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
                             >
                               <ArrowUp className="h-4 w-4" />
                             </Button>
@@ -1252,7 +1284,7 @@ export default function Home() {
                               size="icon"
                               onClick={() => moveColumn(index, 'down')}
                               disabled={index === columns.length - 1}
-                              className="h-8 w-8 hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300"
+                              className="h-8 w-8 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
                             >
                               <ArrowDown className="h-4 w-4" />
                             </Button>
@@ -1265,7 +1297,7 @@ export default function Home() {
                           onCheckedChange={(checked) =>
                             updateColumn(index, 'isPrimaryKey', checked)
                           }
-                          className="rounded-none data-[state=checked]:bg-zinc-600 data-[state=checked]:border-zinc-600"
+                          className="rounded-none bg-gray-100 dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 data-[state=checked]:bg-zinc-500 dark:data-[state=checked]:bg-zinc-600 data-[state=checked]:border-zinc-500 dark:data-[state=checked]:border-zinc-600"
                         />
                       </td>
                       <td className="text-center py-3 px-4">
@@ -1275,7 +1307,7 @@ export default function Home() {
                             updateColumn(index, 'isNullable', checked)
                           }
                           disabled={column.isPrimaryKey}
-                          className="rounded-none data-[state=checked]:bg-zinc-600 data-[state=checked]:border-zinc-600"
+                          className="rounded-none bg-gray-100 dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 data-[state=checked]:bg-zinc-500 dark:data-[state=checked]:bg-zinc-600 data-[state=checked]:border-zinc-500 dark:data-[state=checked]:border-zinc-600"
                         />
                       </td>
                       <td className="py-3 px-4">
@@ -1285,10 +1317,10 @@ export default function Home() {
                             updateColumn(index, 'dataType', value)
                           }
                         >
-                          <SelectTrigger className="w-full bg-zinc-800 border-zinc-700 focus:ring-1 focus:ring-zinc-600 rounded-none text-zinc-200">
+                          <SelectTrigger className="w-full bg-gray-100 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 rounded-none text-zinc-700 dark:text-zinc-200">
                             <SelectValue placeholder="Seleccionar" />
                           </SelectTrigger>
-                          <SelectContent className="bg-zinc-800 border-zinc-700 rounded-none">
+                          <SelectContent className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-none">
                             <SelectItem value="NUMBER">NUMBER</SelectItem>
                             <SelectItem value="NUMBER(5)">NUMBER(5)</SelectItem>
                             <SelectItem value="NUMBER(9,6)">
@@ -1329,7 +1361,7 @@ export default function Home() {
                             updateColumn(index, 'constraint', e.target.value)
                           }
                           placeholder="UNIQUE, CHECK, etc."
-                          className="w-full bg-zinc-800 border-zinc-700 focus:ring-1 focus:ring-zinc-600 rounded-none text-zinc-200"
+                          className="w-full bg-gray-100 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 rounded-none text-zinc-700 dark:text-zinc-200"
                         />
                       </td>
                       <td className="text-center py-3 px-4">
@@ -1338,7 +1370,7 @@ export default function Home() {
                           onCheckedChange={(checked) =>
                             updateColumn(index, 'hasForeignKey', checked)
                           }
-                          className="rounded-none data-[state=checked]:bg-zinc-600 data-[state=checked]:border-zinc-600"
+                          className="rounded-none bg-gray-100 dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 data-[state=checked]:bg-zinc-500 dark:data-[state=checked]:bg-zinc-600 data-[state=checked]:border-zinc-500 dark:data-[state=checked]:border-zinc-600"
                         />
                       </td>
                       <td className="py-3 px-4">
@@ -1349,7 +1381,7 @@ export default function Home() {
                           }
                           placeholder="nombre_tabla_referencia"
                           disabled={!column.hasForeignKey}
-                          className="w-full bg-zinc-800 border-zinc-700 focus:ring-1 focus:ring-zinc-600 rounded-none text-zinc-200"
+                          className="w-full bg-gray-100 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 rounded-none text-zinc-700 dark:text-zinc-200"
                         />
                       </td>
                       <td className="py-3 px-4">
@@ -1359,7 +1391,7 @@ export default function Home() {
                             updateColumn(index, 'comment', e.target.value)
                           }
                           placeholder="Descripción del campo"
-                          className="w-full bg-zinc-800 border-zinc-700 focus:ring-1 focus:ring-zinc-600 rounded-none text-zinc-200"
+                          className="w-full bg-gray-100 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 rounded-none text-zinc-700 dark:text-zinc-200"
                         />
                       </td>
                       <td className="text-center py-3 px-4">
@@ -1382,7 +1414,7 @@ export default function Home() {
             <div className="pt-6 border-t border-zinc-800 mt-8 flex gap-4 flex-wrap">
               <Button
                 onClick={saveScript}
-                className="bg-zinc-700 hover:bg-zinc-600 text-zinc-100 rounded-none h-9"
+                className="bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-800 dark:text-zinc-100 rounded-none h-9 transition-all duration-200 action-button"
               >
                 <FileCode className="mr-2 h-4 w-4" />
                 {editingScriptId
@@ -1392,19 +1424,21 @@ export default function Home() {
               <Button
                 onClick={generateInsertProcedure}
                 variant="outline"
-                className="border-zinc-700 hover:bg-zinc-800 text-zinc-300 rounded-none h-9"
+                className="border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-none h-9"
               >
                 Generar Procedimiento INSERT
               </Button>
               <Button
                 onClick={generateUpdateProcedure}
                 variant="outline"
-                className="border-zinc-700 hover:bg-zinc-800 text-zinc-300 rounded-none h-9"
+                className="border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-none h-9 transition-all duration-200"
               >
                 Generar Procedimiento UPDATE
               </Button>
               <Button
-                className="bg-zinc-700 hover:bg-zinc-600 text-zinc-100 rounded-none h-9"
+                className={`bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-800 dark:text-zinc-100 rounded-none h-9 transition-all duration-200 ${
+                  isSavingToRedis ? 'loading-button' : ''
+                }`}
                 onClick={async () => {
                   if (!previewScript || !tableName) {
                     setAlertConfig({
@@ -1496,9 +1530,9 @@ export default function Home() {
 
           {/* Lista de scripts guardados */}
           {savedScripts.length > 0 && (
-            <div className="bg-zinc-900 border border-zinc-800">
-              <div className="border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
-                <h2 className="text-lg font-normal text-zinc-100">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 slide-up">
+              <div className="border-b border-zinc-200 dark:border-zinc-800 px-4 py-3 flex items-center justify-between">
+                <h2 className="text-lg font-normal text-zinc-800 dark:text-zinc-100">
                   Scripts Guardados
                 </h2>
                 <div className="flex gap-2">
@@ -1506,7 +1540,7 @@ export default function Home() {
                     placeholder="Buscar..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="bg-zinc-800 border-zinc-700 w-[180px] rounded-none text-zinc-200 h-8 text-xs"
+                    className="bg-gray-100 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 w-[180px] rounded-none text-zinc-700 dark:text-zinc-200 h-8 text-xs"
                   />
                   <Select
                     value={typeFilter}
@@ -1514,7 +1548,7 @@ export default function Home() {
                       setTypeFilter(value)
                     }
                   >
-                    <SelectTrigger className="bg-zinc-800 border-zinc-700 focus:ring-1 focus:ring-zinc-600 rounded-none text-zinc-200 w-[120px] h-8 text-xs">
+                    <SelectTrigger className="bg-gray-100 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 rounded-none text-zinc-700 dark:text-zinc-200 w-[120px] h-8 text-xs">
                       <SelectValue placeholder="Filtrar" />
                     </SelectTrigger>
                     <SelectContent className="bg-zinc-800 border-zinc-700 rounded-none text-xs">
@@ -1527,54 +1561,54 @@ export default function Home() {
               </div>
 
               <div>
-                <div className="flex items-center border-b border-zinc-800 bg-zinc-800/30">
+                <div className="flex items-center border-b border-zinc-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-800/30">
                   <div
-                    className="w-[300px] py-2 px-4 flex items-center gap-1 cursor-pointer hover:bg-zinc-800/40"
+                    className="w-[300px] py-2 px-4 flex items-center gap-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-zinc-800/40"
                     onClick={() => requestSort('tableName')}
                   >
-                    <span className="text-zinc-400 font-normal text-xs">
+                    <span className="text-zinc-600 dark:text-zinc-400 font-normal text-xs">
                       Nombre de Tabla
                     </span>
                     {sortConfig.key === 'tableName' && (
                       <span>
                         {sortConfig.direction === 'asc' ? (
-                          <ArrowUp className="h-3 w-3 text-zinc-400" />
+                          <ArrowUp className="h-3 w-3 text-zinc-500 dark:text-zinc-400" />
                         ) : (
-                          <ArrowDown className="h-3 w-3 text-zinc-400" />
+                          <ArrowDown className="h-3 w-3 text-zinc-500 dark:text-zinc-400" />
                         )}
                       </span>
                     )}
                   </div>
                   <div
-                    className="w-[100px] py-2 px-4 flex items-center gap-1 cursor-pointer hover:bg-zinc-800/40"
+                    className="w-[100px] py-2 px-4 flex items-center gap-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-zinc-800/40"
                     onClick={() => requestSort('type')}
                   >
-                    <span className="text-zinc-400 font-normal text-xs">
+                    <span className="text-zinc-600 dark:text-zinc-400 font-normal text-xs">
                       Tipo
                     </span>
                     {sortConfig.key === 'type' && (
                       <span>
                         {sortConfig.direction === 'asc' ? (
-                          <ArrowUp className="h-3 w-3 text-zinc-400" />
+                          <ArrowUp className="h-3 w-3 text-zinc-500 dark:text-zinc-400" />
                         ) : (
-                          <ArrowDown className="h-3 w-3 text-zinc-400" />
+                          <ArrowDown className="h-3 w-3 text-zinc-500 dark:text-zinc-400" />
                         )}
                       </span>
                     )}
                   </div>
                   <div
-                    className="w-[180px] py-2 px-4 flex items-center gap-1 cursor-pointer hover:bg-zinc-800/40"
+                    className="w-[180px] py-2 px-4 flex items-center gap-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-zinc-800/40"
                     onClick={() => requestSort('createdAt')}
                   >
-                    <span className="text-zinc-400 font-normal text-xs">
+                    <span className="text-zinc-600 dark:text-zinc-400 font-normal text-xs">
                       Modificación
                     </span>
                     {sortConfig.key === 'createdAt' && (
                       <span>
                         {sortConfig.direction === 'asc' ? (
-                          <ArrowUp className="h-3 w-3 text-zinc-400" />
+                          <ArrowUp className="h-3 w-3 text-zinc-500 dark:text-zinc-400" />
                         ) : (
-                          <ArrowDown className="h-3 w-3 text-zinc-400" />
+                          <ArrowDown className="h-3 w-3 text-zinc-500 dark:text-zinc-400" />
                         )}
                       </span>
                     )}
@@ -1589,19 +1623,20 @@ export default function Home() {
                 {sortedScripts.map((script, index) => (
                   <div
                     key={script.id}
-                    className="flex items-center border-b border-zinc-800 hover:bg-zinc-800/40"
+                    className="flex items-center border-b border-zinc-200 dark:border-zinc-800 hover:bg-zinc-800/40 transition-all"
+                    style={{ animationDelay: `${index * 50}ms` }}
                   >
                     <div className="w-[300px] py-2 px-4 flex items-center">
-                      <span className="text-zinc-200 text-sm truncate">
+                      <span className="text-zinc-800 dark:text-zinc-200 text-sm truncate">
                         {script.tableName}
                       </span>
                     </div>
                     <div className="w-[100px] py-2 px-4">
                       <span
-                        className={`text-xs ${
+                        className={`text-xs font-medium py-1 px-2 rounded-sm ${
                           script.isAlterTable
-                            ? 'text-amber-500'
-                            : 'text-blue-500'
+                            ? 'bg-zinc-200 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-300'
+                            : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-400'
                         }`}
                       >
                         {script.isAlterTable ? 'ALTER' : 'CREATE'}
@@ -1622,7 +1657,7 @@ export default function Home() {
                             setPreviewTitle(`Script de ${script.tableName}`);
                             setShowPreview(true);
                           }}
-                          className="h-7 w-7 p-0 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
+                          className="h-7 w-7 p-0 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200"
                           title="Ver script"
                         >
                           <FileCode className="h-3.5 w-3.5" />
@@ -1632,6 +1667,16 @@ export default function Home() {
                           size="sm"
                           onClick={() => {
                             navigator.clipboard.writeText(script.script);
+
+                            // Animar el botón cuando se hace clic
+                            const button = document.activeElement;
+                            if (button) {
+                              button.classList.add('scale-in');
+                              setTimeout(() => {
+                                button.classList.remove('scale-in');
+                              }, 300);
+                            }
+
                             setAlertConfig({
                               type: 'success',
                               title: 'Éxito',
@@ -1640,7 +1685,7 @@ export default function Home() {
                             setShowAlert(true);
                             setTimeout(() => setShowAlert(false), 3000);
                           }}
-                          className="h-7 w-7 p-0 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
+                          className="h-7 w-7 p-0 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200"
                           title="Copiar al portapapeles"
                         >
                           <ClipboardCopy className="h-3.5 w-3.5" />
@@ -1649,7 +1694,7 @@ export default function Home() {
                           variant="ghost"
                           size="sm"
                           onClick={() => copyWithFormat(script)}
-                          className="h-7 w-7 p-0 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
+                          className="h-7 w-7 p-0 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200"
                           title="Copiar con formato"
                         >
                           <FileSpreadsheet className="h-3.5 w-3.5" />
@@ -1686,7 +1731,7 @@ export default function Home() {
       </div>
 
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent className="sm:max-w-[425px] bg-zinc-900 border-zinc-800 rounded-none p-0">
+        <DialogContent className="sm:max-w-[425px] bg-zinc-900 border-zinc-800 rounded-none p-0 dialog-content">
           <div className="flex flex-col">
             <div className="border-b border-zinc-800 px-4 py-3">
               <DialogTitle className="text-base font-normal text-zinc-300">
@@ -1761,7 +1806,7 @@ export default function Home() {
                     setScriptToDelete(null);
                   }
                 }}
-                className="bg-red-700 hover:bg-red-600 rounded-none"
+                className="bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-800 dark:text-zinc-100 rounded-none"
               >
                 Eliminar
               </Button>
@@ -1771,35 +1816,36 @@ export default function Home() {
       </Dialog>
 
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-[95vw] max-h-[90vh] min-w-[800px] bg-zinc-900 border-zinc-800 rounded-none p-0 flex flex-col h-[80vh]">
-          <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3 shrink-0">
-            <DialogTitle className="text-base font-normal flex items-center gap-2 text-zinc-300">
-              <FileCode className="h-4 w-4 text-zinc-400" />
+        <DialogContent className="max-w-[95vw] max-h-[90vh] min-w-[800px] bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 rounded-none p-0 flex flex-col h-[80vh] dialog-content">
+          <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 px-4 py-3 shrink-0">
+            <DialogTitle className="text-base font-normal flex items-center gap-2 text-zinc-700 dark:text-zinc-300">
+              <FileCode className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
               {previewTitle}
             </DialogTitle>
             <Button
               onClick={() => setShowPreview(false)}
               variant="ghost"
-              className="h-6 w-6 p-0 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-full"
+              className="h-6 w-6 p-0 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full"
             >
               <span className="sr-only">Cerrar</span>
             </Button>
           </div>
 
           <div className="overflow-auto flex-grow p-4 relative">
-            <pre className="font-mono text-sm text-zinc-300 whitespace-pre overflow-x-auto w-full h-full">
+            <pre className="font-mono text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre overflow-x-auto w-full h-full">
               {previewScript}
             </pre>
           </div>
 
-          <div className="border-t border-zinc-800 px-4 py-3 flex justify-between items-center shrink-0">
+          <div className="border-t border-zinc-200 dark:border-zinc-800 px-4 py-3 flex justify-between items-center shrink-0">
             <div className="text-xs text-zinc-500">
               {new Date().toLocaleString()}
             </div>
             <Button
+              id="copy-button"
               onClick={copyToClipboard}
               variant="ghost"
-              className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded-sm h-7 text-xs"
+              className="text-zinc-600 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-sm h-7 text-xs transition-all duration-200"
             >
               <ClipboardCopy className="h-3.5 w-3.5 mr-2" />
               Copiar Script
@@ -1809,29 +1855,19 @@ export default function Home() {
       </Dialog>
 
       {showAlert && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <Alert className="border-l-4 border-l-zinc-600 bg-zinc-900 shadow-md border border-zinc-800">
+        <div className="fixed bottom-4 right-4 z-50 fade-in">
+          <Alert className="border-l-4 border-l-zinc-400 dark:border-l-zinc-600 bg-white dark:bg-zinc-900 shadow-md border border-zinc-200 dark:border-zinc-800">
             {alertConfig.type === 'success' ? (
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <CheckCircle2 className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
             ) : (
-              <AlertCircle className="h-4 w-4 text-red-500" />
+              <AlertCircle className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
             )}
             <AlertTitle
-              className={
-                alertConfig.type === 'success'
-                  ? 'text-green-400 font-normal'
-                  : 'text-red-400 font-normal'
-              }
+              className={'text-zinc-700 dark:text-zinc-300 font-normal'}
             >
               {alertConfig.title}
             </AlertTitle>
-            <AlertDescription
-              className={
-                alertConfig.type === 'success'
-                  ? 'text-green-500'
-                  : 'text-red-500'
-              }
-            >
+            <AlertDescription className={'text-zinc-600 dark:text-zinc-400'}>
               {alertConfig.description}
             </AlertDescription>
           </Alert>
