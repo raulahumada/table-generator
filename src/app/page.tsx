@@ -1323,6 +1323,9 @@ export default function Home() {
                           <SelectContent className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 rounded-none">
                             <SelectItem value="NUMBER">NUMBER</SelectItem>
                             <SelectItem value="NUMBER(5)">NUMBER(5)</SelectItem>
+                            <SelectItem value="NUMBER(5,2)">
+                              NUMBER(5,2)
+                            </SelectItem>
                             <SelectItem value="NUMBER(9,6)">
                               NUMBER(9,6)
                             </SelectItem>
