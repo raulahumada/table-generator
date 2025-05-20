@@ -25,24 +25,60 @@ export async function POST(request: Request) {
     // Get existing scripts
     const existingScripts = (await redis.get<Script[]>(SCRIPTS_KEY)) || [];
 
-    // Create new script entry
-    const newScript: Script = {
-      id: Date.now().toString(),
-      script,
-      tableName,
-      createdAt: new Date().toISOString(),
-      isAlterTable: isAlterTable || false,
-    };
+    // Verificar si ya existe un script con el mismo nombre de tabla
+    const existingScriptIndex = existingScripts.findIndex(
+      (s) => s.tableName === tableName
+    );
 
-    // Add new script to array
-    const updatedScripts = [...existingScripts, newScript];
-    const result = await redis.set(SCRIPTS_KEY, updatedScripts);
+    if (existingScriptIndex !== -1) {
+      // Si existe un script con el mismo nombre, lo actualizamos
+      const existingScript = existingScripts[existingScriptIndex];
+      const updatedScript: Script = {
+        id: existingScript.id, // Mantener el ID original
+        script,
+        tableName,
+        createdAt: new Date().toISOString(),
+        isAlterTable: isAlterTable || false,
+      };
 
-    if (result !== 'OK') {
-      throw new Error('Failed to save to Redis');
+      // Reemplazamos el script existente
+      existingScripts[existingScriptIndex] = updatedScript;
+
+      const result = await redis.set(SCRIPTS_KEY, existingScripts);
+
+      if (result !== 'OK') {
+        throw new Error('Failed to update in Redis');
+      }
+
+      return NextResponse.json({
+        success: true,
+        script: updatedScript,
+        isUpdate: true,
+      });
+    } else {
+      // Si no existe, creamos uno nuevo
+      const newScript: Script = {
+        id: Date.now().toString(),
+        script,
+        tableName,
+        createdAt: new Date().toISOString(),
+        isAlterTable: isAlterTable || false,
+      };
+
+      // Add new script to array
+      const updatedScripts = [...existingScripts, newScript];
+      const result = await redis.set(SCRIPTS_KEY, updatedScripts);
+
+      if (result !== 'OK') {
+        throw new Error('Failed to save to Redis');
+      }
+
+      return NextResponse.json({
+        success: true,
+        script: newScript,
+        isNew: true,
+      });
     }
-
-    return NextResponse.json({ success: true, script: newScript });
   } catch (error) {
     console.error('Error saving script:', error);
     return NextResponse.json(

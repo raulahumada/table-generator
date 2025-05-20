@@ -1480,14 +1480,24 @@ export default function Home() {
                           )
                         );
                         setEditingScriptId(null);
+                      } else if (result.isUpdate) {
+                        // Si fue una actualización basada en el nombre de la tabla
+                        setSavedScripts((prev) =>
+                          prev.map((s) =>
+                            s.id === result.script.id ? result.script : s
+                          )
+                        );
                       } else {
                         // Agregar el nuevo script a la lista
                         setSavedScripts((prev) => [...prev, result.script]);
                       }
+
                       setAlertConfig({
                         type: 'success',
                         title: 'Éxito',
-                        description: editingScriptId
+                        description: result.isUpdate
+                          ? 'Script actualizado en Redis exitosamente'
+                          : editingScriptId
                           ? 'Script actualizado en Redis exitosamente'
                           : 'Script guardado en Redis exitosamente',
                       });
