@@ -172,26 +172,6 @@ export default function Home() {
     }));
   };
 
-  useEffect(() => {
-    const handleKeyPress = (event: KeyboardEvent) => {
-      setKeySequence((prev) => {
-        const newSequence = prev + event.key.toLowerCase();
-
-        // Si la secuencia contiene "milei", activar el easter egg
-        if (newSequence.includes('milei')) {
-          setShowEasterEgg(true);
-          return '';
-        }
-
-        // Mantener solo los últimos 10 caracteres para no acumular memoria
-        return newSequence.slice(-10);
-      });
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, []);
-
   // Load scripts from Redis when component mounts
   useEffect(() => {
     const fetchScripts = async () => {
