@@ -9,11 +9,13 @@ type Script = {
   tableName: string;
   createdAt: string;
   isAlterTable: boolean;
+  tableComment?: string;
 };
 
 export async function POST(request: Request) {
   try {
-    const { script, tableName, isAlterTable } = await request.json();
+    const { script, tableName, isAlterTable, tableComment } =
+      await request.json();
 
     if (!script || !tableName) {
       return NextResponse.json(
@@ -39,6 +41,7 @@ export async function POST(request: Request) {
         tableName,
         createdAt: new Date().toISOString(),
         isAlterTable: isAlterTable || false,
+        tableComment,
       };
 
       // Reemplazamos el script existente
@@ -63,6 +66,7 @@ export async function POST(request: Request) {
         tableName,
         createdAt: new Date().toISOString(),
         isAlterTable: isAlterTable || false,
+        tableComment,
       };
 
       // Add new script to array
@@ -148,7 +152,8 @@ export async function DELETE(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const { id, script, tableName, isAlterTable } = await request.json();
+    const { id, script, tableName, isAlterTable, tableComment } =
+      await request.json();
 
     if (!id || !script || !tableName) {
       return NextResponse.json(
@@ -178,6 +183,7 @@ export async function PUT(request: Request) {
       tableName,
       createdAt: currentDate,
       isAlterTable: isAlterTable || false,
+      tableComment,
     };
 
     // Encontrar el índice del script que estamos editando

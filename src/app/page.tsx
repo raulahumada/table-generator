@@ -46,6 +46,7 @@ import {
   ArrowUpDown,
   FileSpreadsheet,
   X,
+  Copy,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -74,6 +75,7 @@ interface Script {
   script: string;
   createdAt: string;
   isAlterTable: boolean;
+  tableComment?: string;
   type?: 'CREATE TABLE' | 'ALTER TABLE';
 }
 
@@ -804,10 +806,12 @@ export default function Home() {
     setTableName(savedScript.tableName);
     setEditingScriptId(savedScript.id);
     setIsAlterTable(savedScript.isAlterTable || false);
+    // Cargar el comentario de la tabla si existe
+    setTableComment(savedScript.tableComment || '');
 
     const lines = savedScript.script.split('\n');
     const newColumns: Column[] = [];
-    let currentTableComment = '';
+    let currentTableComment = savedScript.tableComment || '';
     let isInsideDropBlock = false;
     let isInsideCreateTable = false;
     let currentColumn: Column | null = null;
@@ -1102,6 +1106,203 @@ export default function Home() {
     } finally {
       setIsGeneratingComments(false);
     }
+  };
+
+  const duplicateScript = (savedScript: Script) => {
+    // Cargar el script pero con nombre vacío y sin ID de edición
+    setTableName('');
+    setEditingScriptId(null);
+    setIsAlterTable(savedScript.isAlterTable || false);
+    // Mantener el comentario de la tabla cuando se duplica
+    setTableComment(savedScript.tableComment || '');
+
+    const lines = savedScript.script.split('\n');
+    const newColumns: Column[] = [];
+    let currentTableComment = savedScript.tableComment || '';
+    let isInsideDropBlock = false;
+    let isInsideCreateTable = false;
+    let currentColumn: Column | null = null;
+    let pkColumns: string[] = [];
+    let collectingPkColumns = false;
+
+    // Procesar cada línea del script
+    lines.forEach((line) => {
+      const trimmedLine = line.trim();
+
+      // Detectar comienzo de definición de PRIMARY KEY
+      if (trimmedLine.includes('PRIMARY KEY')) {
+        collectingPkColumns = true;
+      }
+
+      // Capturar las columnas de PK en formato (col1, col2)
+      if (collectingPkColumns) {
+        const colMatch = trimmedLine.match(/\(\s*(.*?)\s*\)/);
+        if (colMatch) {
+          const cols = colMatch[1].split(',').map((col) => col.trim());
+          pkColumns = [...pkColumns, ...cols];
+          collectingPkColumns = false;
+        }
+      }
+
+      // Detectar PKs en la definición de constraint en una sola línea
+      const pkConstraintMatch = trimmedLine.match(
+        /PRIMARY KEY\s*\(\s*(.*?)\s*\)/i
+      );
+      if (pkConstraintMatch) {
+        const cols = pkConstraintMatch[1].split(',').map((col) => col.trim());
+        pkColumns = [...pkColumns, ...cols];
+      }
+
+      // Ignorar el bloque DECLARE/BEGIN/END
+      if (
+        trimmedLine.startsWith('DECLARE') ||
+        trimmedLine.startsWith('BEGIN')
+      ) {
+        isInsideDropBlock = true;
+        return;
+      }
+      if (isInsideDropBlock) {
+        if (trimmedLine === 'END;' || trimmedLine === '/') {
+          isInsideDropBlock = false;
+        }
+        return;
+      }
+
+      // Detectar CREATE TABLE
+      if (trimmedLine.startsWith('CREATE TABLE')) {
+        isInsideCreateTable = true;
+        return;
+      }
+
+      // Extraer comentario de tabla
+      const tableCommentMatch = trimmedLine.match(
+        /COMMENT ON TABLE .* IS '(.*)'/
+      );
+      if (tableCommentMatch) {
+        currentTableComment = tableCommentMatch[1];
+        setTableComment(currentTableComment);
+        return;
+      }
+
+      // Extraer comentarios de columnas
+      const columnCommentMatch = trimmedLine.match(
+        /COMMENT ON COLUMN .*\.(.*) IS '(.*)'/
+      );
+      if (columnCommentMatch) {
+        const columnName = columnCommentMatch[1].trim();
+        const comment = columnCommentMatch[2];
+        const existingColumn = newColumns.find(
+          (col) => col.name === columnName
+        );
+        if (existingColumn) {
+          existingColumn.comment = comment;
+        }
+        return;
+      }
+
+      // Procesar definiciones de columnas
+      if (savedScript.isAlterTable) {
+        // Para ALTER TABLE
+        const alterColumnMatch = trimmedLine.match(
+          /ALTER TABLE .* ADD (\w+) ([\w()]+)( NOT NULL)?/
+        );
+        if (alterColumnMatch) {
+          const [, name, dataType, notNull] = alterColumnMatch;
+          newColumns.push({
+            name,
+            dataType,
+            isPrimaryKey: pkColumns.includes(name),
+            isNullable: !notNull,
+            constraint: '',
+            hasForeignKey: false,
+            foreignTable: '',
+            comment: '',
+          });
+        }
+      } else {
+        // Para CREATE TABLE
+        if (isInsideCreateTable) {
+          if (trimmedLine === ');') {
+            isInsideCreateTable = false;
+            if (currentColumn) {
+              newColumns.push(currentColumn);
+              currentColumn = null;
+            }
+            return;
+          }
+
+          // Procesar columna individual
+          const columnMatch = trimmedLine.match(
+            /^\s*(\w+)\s+([\w()]+)(\s+NOT NULL)?/
+          );
+          if (columnMatch && !trimmedLine.startsWith('CONSTRAINT')) {
+            if (currentColumn) {
+              newColumns.push(currentColumn);
+            }
+            const [, name, dataType, notNull] = columnMatch;
+            currentColumn = {
+              name,
+              dataType,
+              isPrimaryKey: pkColumns.includes(name),
+              isNullable: !notNull,
+              constraint: '',
+              hasForeignKey: false,
+              foreignTable: '',
+              comment: '',
+            };
+          }
+        }
+      }
+
+      // Procesar FOREIGN KEY
+      const fkMatch = trimmedLine.match(
+        /FOREIGN KEY\s*\((.*?)\)\s*REFERENCES\s*(.*?)\s*\((.*?)\)/
+      );
+      if (fkMatch) {
+        const [, columnName, foreignTable] = fkMatch;
+        const column = newColumns.find((col) => col.name === columnName.trim());
+        if (column) {
+          column.hasForeignKey = true;
+          column.foreignTable = foreignTable.trim();
+        }
+      }
+    });
+
+    // Asegurarse de agregar la última columna si existe
+    if (currentColumn) {
+      newColumns.push(currentColumn);
+    }
+
+    // Si no se encontraron columnas, agregar una vacía
+    if (newColumns.length === 0) {
+      newColumns.push({
+        name: '',
+        isPrimaryKey: false,
+        isNullable: true,
+        dataType: '',
+        constraint: '',
+        hasForeignKey: false,
+        foreignTable: '',
+        comment: '',
+      });
+    }
+
+    // Actualizar las PKs una vez más después de procesar todo el script
+    newColumns.forEach((column) => {
+      if (pkColumns.includes(column.name)) {
+        column.isPrimaryKey = true;
+        column.isNullable = false;
+      }
+    });
+
+    setColumns(newColumns);
+    setAlertConfig({
+      type: 'success',
+      title: 'Éxito',
+      description: 'Script duplicado como nuevo en el editor',
+    });
+    setShowAlert(true);
+    setTimeout(() => setShowAlert(false), 3000);
   };
 
   return (
@@ -1466,6 +1667,7 @@ export default function Home() {
                         script: previewScript,
                         tableName: tableName,
                         isAlterTable: isAlterTable,
+                        tableComment: tableComment,
                       }),
                     });
 
@@ -1711,6 +1913,15 @@ export default function Home() {
                           title="Copiar con formato"
                         >
                           <FileSpreadsheet className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => duplicateScript(script)}
+                          className="h-7 w-7 p-0 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
+                          title="Duplicar como nuevo"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
