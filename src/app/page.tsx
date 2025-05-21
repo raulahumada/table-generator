@@ -144,10 +144,13 @@ export default function Home() {
             ? typeA.localeCompare(typeB)
             : typeB.localeCompare(typeA);
         }
-        if (a[sortConfig.key] < b[sortConfig.key]) {
+        const valA = a[sortConfig.key] ?? '';
+        const valB = b[sortConfig.key] ?? '';
+
+        if (valA < valB) {
           return sortConfig.direction === 'asc' ? -1 : 1;
         }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
+        if (valA > valB) {
           return sortConfig.direction === 'asc' ? 1 : -1;
         }
         return 0;
